@@ -802,103 +802,92 @@ const Dashboard = () => {
         !isLoading && !isError && (
           <div className="px-3 md:px-4 space-y-6 max-w-[1700px] mx-auto relative z-10 pt-6">
 
-            {/* TOP KPI CARDS: 5 specific glowing metrics */}
+            {/* TOP KPI CARDS: Compact 5-column layout */}
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
               {/* Card 1: Total Revenue */}
-              <div className="rounded-2xl bg-gradient-to-br from-[#00FF9D] to-[#00BA72] p-5 relative overflow-hidden cursor-pointer group shadow-[0_8px_32px_rgba(0,255,157,0.15)] hover:shadow-[0_12px_48px_rgba(0,255,157,0.25)] transition-all duration-300 transform hover:scale-[1.02]" onClick={() => navigate('/administrator/transactions')}>
-                <div className="flex justify-between items-start mb-2">
-                  <span className="text-white/80 text-[10px] font-bold uppercase tracking-wider">Total Revenue</span>
-                  <button className="text-white/60 hover:text-white transition-colors">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2 s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" /></svg>
-                  </button>
+              <div className="rounded-xl border border-white/[0.08] bg-[#0F1720] p-4 cursor-pointer relative overflow-hidden group hover:bg-[#0F1720]/80 transition-all duration-300 shadow-lg border-none" onClick={() => navigate('/administrator/transactions')}>
+                <div className="flex justify-between items-start relative z-10 mb-2">
+                  <span className="text-white/70 text-[10px] font-bold uppercase tracking-wider">Total Revenue</span>
+                  <DollarSign className="h-3.5 w-3.5 text-[#00FF9D]/60" />
                 </div>
-                <div className="text-[26px] font-bold text-white tracking-tight mb-2">{formatCurrency(typedMetrics.total_sales)}</div>
-                <div className="flex items-center gap-1.5 text-white text-[11px] font-bold mb-4 bg-white/10 w-max px-2 py-0.5 rounded-md border border-white/20">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m18 15-6-6-6 6" /></svg>
-                  <span>+{(typedMetrics.revenue_growth || 18.2).toFixed(1)}%</span>
+                <div className="flex items-baseline gap-2 relative z-10">
+                  <div className="text-2xl font-black text-white tracking-tight">{formatCurrency(typedMetrics.total_sales)}</div>
+                  <div className="text-[#00FF9D] text-[10px] font-bold">+{(typedMetrics.revenue_growth || 18.2).toFixed(1)}%</div>
                 </div>
-                <div className="h-10 w-full mt-auto opacity-40 group-hover:opacity-60 transition-opacity">
+                {/* Compact sparkline */}
+                <div className="h-6 w-full mt-3 opacity-20 group-hover:opacity-40 transition-opacity relative z-10">
                   <svg viewBox="0 0 100 30" preserveAspectRatio="none" className="w-full h-full">
-                    <path d="M0,25 L10,20 L20,28 L30,15 L40,22 L50,10 L60,18 L70,5 L80,12 L90,2 L100,8 L100,30 L0,30 Z" fill="white" opacity="0.2" />
-                    <path d="M0,25 L10,20 L20,28 L30,15 L40,22 L50,10 L60,18 L70,5 L80,12 L90,2 L100,8" fill="none" stroke="white" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+                    <path d="M0,25 L10,20 L20,28 L30,15 L40,22 L50,10 L60,18 L70,5 L80,12 L90,2 L100,8" fill="none" stroke="#00FF9D" strokeWidth="2" vectorEffect="non-scaling-stroke" />
                   </svg>
                 </div>
               </div>
 
               {/* Card 2: Net Sales */}
-              <div className="rounded-2xl bg-gradient-to-br from-[#00D1FF] to-[#0075FF] p-5 relative overflow-hidden cursor-pointer group shadow-[0_8px_32px_rgba(0,209,255,0.15)] hover:shadow-[0_12px_48px_rgba(0,209,255,0.25)] transition-all duration-300 transform hover:scale-[1.02]" onClick={() => navigate('/administrator/transactions')}>
-                <div className="flex justify-between items-start mb-2">
-                  <span className="text-white/80 text-xs font-semibold tracking-wide">Net Sales</span>
-                  <button className="text-white/60 hover:text-white transition-colors">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" /></svg>
-                  </button>
+              <div className="rounded-xl border border-white/[0.08] bg-[#0F1720] p-4 cursor-pointer relative overflow-hidden group hover:bg-[#0F1720]/80 transition-all duration-300 shadow-lg border-none" onClick={() => navigate('/administrator/transactions')}>
+                <div className="flex justify-between items-start relative z-10 mb-2">
+                  <span className="text-white/70 text-[10px] font-bold uppercase tracking-wider">Net Sales</span>
+                  <DollarSign className="h-3.5 w-3.5 text-[#00D1FF]/60" />
                 </div>
-                <div className="text-[26px] font-bold text-white tracking-tight mb-2">{formatCurrency(typedMetrics.platform_revenue)}</div>
-                <div className="flex items-center gap-1.5 text-white text-[11px] font-bold mb-4 bg-white/10 w-max px-2 py-0.5 rounded-md border border-white/20">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m18 15-6-6-6 6" /></svg>
-                  <span>+{(typedMetrics.revenue_growth || 12.5).toFixed(1)}%</span>
+                <div className="flex items-baseline gap-2 relative z-10">
+                  <div className="text-2xl font-black text-white tracking-tight">{formatCurrency(typedMetrics.platform_revenue)}</div>
+                  <div className="text-[#00D1FF] text-[10px] font-bold">+{(typedMetrics.revenue_growth || 12.5).toFixed(1)}%</div>
                 </div>
-                <div className="h-10 w-full mt-auto opacity-40 group-hover:opacity-60 transition-opacity">
+                {/* Compact sparkline */}
+                <div className="h-6 w-full mt-3 opacity-20 group-hover:opacity-40 transition-opacity relative z-10">
                   <svg viewBox="0 0 100 30" preserveAspectRatio="none" className="w-full h-full">
-                    <path d="M0,20 L15,25 L30,10 L45,15 L60,5 L75,20 L90,8 L100,12 L100,30 L0,30 Z" fill="white" opacity="0.2" />
-                    <path d="M0,20 L15,25 L30,10 L45,15 L60,5 L75,20 L90,8 L100,12" fill="none" stroke="white" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+                    <path d="M0,20 L15,25 L30,10 L45,15 L60,5 L75,20 L90,8 L100,12" fill="none" stroke="#00D1FF" strokeWidth="2" vectorEffect="non-scaling-stroke" />
                   </svg>
                 </div>
               </div>
 
               {/* Card 3: Orders */}
-              <div className="rounded-2xl bg-gradient-to-br from-[#BF5AF2] to-[#8E2DE2] p-5 relative overflow-hidden cursor-pointer group shadow-[0_8px_32px_rgba(191,90,242,0.15)] hover:shadow-[0_12px_48px_rgba(191,90,242,0.25)] transition-all duration-300 transform hover:scale-[1.02]" onClick={() => navigate('/administrator/orders')}>
-                <div className="flex justify-between items-start mb-2">
-                  <span className="text-white/80 text-xs font-semibold tracking-wide">Orders</span>
-                  <button className="text-white/60 hover:text-white transition-colors">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" /></svg>
-                  </button>
+              <div className="rounded-xl border border-white/[0.08] bg-[#0F1720] p-4 cursor-pointer relative overflow-hidden group hover:bg-[#0F1720]/80 transition-all duration-300 shadow-lg border-none" onClick={() => navigate('/administrator/orders')}>
+                <div className="flex justify-between items-start relative z-10 mb-2">
+                  <span className="text-white/70 text-[10px] font-bold uppercase tracking-wider">Orders</span>
+                  <ShoppingCart className="h-3.5 w-3.5 text-[#BF5AF2]/60" />
                 </div>
-                <div className="text-[26px] font-bold text-white tracking-tight mb-2">{formatNumber(typedMetrics.total_orders || 14890)}</div>
-                <div className="flex items-center gap-1.5 text-white text-[11px] font-bold mb-4 bg-white/10 w-max px-2 py-0.5 rounded-md border border-white/20">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m18 15-6-6-6 6" /></svg>
-                  <span>+{(typedMetrics.order_growth || 9.1).toFixed(1)}%</span>
+                <div className="flex items-baseline gap-2 relative z-10">
+                  <div className="text-2xl font-black text-white tracking-tight">{formatNumber(typedMetrics.total_orders || 14890)}</div>
+                  <div className="text-[#BF5AF2] text-[10px] font-bold">+{(typedMetrics.order_growth || 9.1).toFixed(1)}%</div>
                 </div>
-                <div className="h-10 w-full mt-auto opacity-40 group-hover:opacity-60 transition-opacity">
+                {/* Compact sparkline */}
+                <div className="h-6 w-full mt-3 opacity-20 group-hover:opacity-40 transition-opacity relative z-10">
                   <svg viewBox="0 0 100 30" preserveAspectRatio="none" className="w-full h-full">
-                    <path d="M0,15 L10,25 L25,5 L40,20 L55,10 L70,22 L85,8 L100,15 L100,30 L0,30 Z" fill="white" opacity="0.2" />
-                    <path d="M0,15 L10,25 L25,5 L40,20 L55,10 L70,22 L85,8 L100,15" fill="none" stroke="white" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+                    <path d="M0,15 L10,25 L25,5 L40,20 L55,10 L70,22 L85,8 L100,15" fill="none" stroke="#BF5AF2" strokeWidth="2" vectorEffect="non-scaling-stroke" />
                   </svg>
                 </div>
               </div>
 
               {/* Card 4: Avg. Order Value */}
-              <div className="rounded-2xl bg-gradient-to-br from-[#FFD600] to-[#FF9500] p-5 relative overflow-hidden cursor-pointer group shadow-[0_8px_32px_rgba(255,214,0,0.15)] hover:shadow-[0_12px_48px_rgba(255,214,0,0.25)] transition-all duration-300 transform hover:scale-[1.02]">
-                <div className="flex justify-between items-start mb-2">
-                  <span className="text-white/80 text-xs font-semibold tracking-wide">Avg. Order Value</span>
-                  <button className="text-white/60 hover:text-white transition-colors">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" /></svg>
-                  </button>
+              <div className="rounded-xl border border-white/[0.08] bg-[#0F1720] p-4 cursor-pointer relative overflow-hidden group hover:bg-[#0F1720]/80 transition-all duration-300 shadow-lg border-none">
+                <div className="flex justify-between items-start relative z-10 mb-2">
+                  <span className="text-white/70 text-[10px] font-bold uppercase tracking-wider">Avg. Order Value</span>
+                  <TrendingUp className="h-3.5 w-3.5 text-[#FFD600]/60" />
                 </div>
-                <div className="text-[26px] font-bold text-white tracking-tight mb-2">{formatCurrency(typedMetrics.average_order_value || 86.27)}</div>
-                <div className="h-6 my-2"></div>
-                <div className="h-10 w-full mt-auto opacity-40 group-hover:opacity-60 transition-opacity">
+                <div className="flex items-baseline gap-2 relative z-10">
+                  <div className="text-2xl font-black text-white tracking-tight">{formatCurrency(typedMetrics.average_order_value || 86.27)}</div>
+                </div>
+                {/* Compact sparkline */}
+                <div className="h-6 w-full mt-3 opacity-20 group-hover:opacity-40 transition-opacity relative z-10">
                   <svg viewBox="0 0 100 30" preserveAspectRatio="none" className="w-full h-full">
-                    <path d="M0,22 L15,18 L30,25 L45,15 L60,20 L75,10 L90,15 L100,5 L100,30 L0,30 Z" fill="white" opacity="0.2" />
-                    <path d="M0,22 L15,18 L30,25 L45,15 L60,20 L75,10 L90,15 L100,5" fill="none" stroke="white" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+                    <path d="M0,22 L15,18 L30,25 L45,15 L60,20 L75,10 L90,15 L100,5" fill="none" stroke="#FFD600" strokeWidth="2" vectorEffect="non-scaling-stroke" />
                   </svg>
                 </div>
               </div>
 
               {/* Card 5: Conversion Rate */}
-              <div className="rounded-2xl bg-gradient-to-br from-[#FF375F] to-[#D30A40] p-5 relative overflow-hidden cursor-pointer group shadow-[0_8px_32px_rgba(255,55,95,0.15)] hover:shadow-[0_12px_48px_rgba(255,55,95,0.25)] transition-all duration-300 transform hover:scale-[1.02]">
-                <div className="flex justify-between items-start mb-2">
-                  <span className="text-white/80 text-xs font-semibold tracking-wide">Conversion Rate</span>
-                  <button className="text-white/60 hover:text-white transition-colors">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" /></svg>
-                  </button>
+              <div className="rounded-xl border border-white/[0.08] bg-[#0F1720] p-4 cursor-pointer relative overflow-hidden group hover:bg-[#0F1720]/80 transition-all duration-300 shadow-lg border-none">
+                <div className="flex justify-between items-start relative z-10 mb-2">
+                  <span className="text-white/70 text-[10px] font-bold uppercase tracking-wider">Conversion Rate</span>
+                  <Activity className="h-3.5 w-3.5 text-[#FF375F]/60" />
                 </div>
-                <div className="text-[26px] font-bold text-white tracking-tight mb-2">{(typedMetrics.conversion_rate || 3.8).toFixed(1)}%</div>
-                <div className="h-6 my-2"></div>
-                <div className="h-10 w-full mt-auto opacity-40 group-hover:opacity-60 transition-opacity">
+                <div className="flex items-baseline gap-2 relative z-10">
+                  <div className="text-2xl font-black text-white tracking-tight">{(typedMetrics.conversion_rate || 3.8).toFixed(1)}%</div>
+                </div>
+                {/* Compact sparkline */}
+                <div className="h-6 w-full mt-3 opacity-20 group-hover:opacity-40 transition-opacity relative z-10">
                   <svg viewBox="0 0 100 30" preserveAspectRatio="none" className="w-full h-full">
-                    <path d="M0,25 L15,22 L30,18 L45,25 L60,15 L75,18 L90,10 L100,12 L100,30 L0,30 Z" fill="white" opacity="0.2" />
-                    <path d="M0,25 L15,22 L30,18 L45,25 L60,15 L75,18 L90,10 L100,12" fill="none" stroke="white" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+                    <path d="M0,25 L15,22 L30,18 L45,25 L60,15 L75,18 L90,10 L100,12" fill="none" stroke="#FF375F" strokeWidth="2" vectorEffect="non-scaling-stroke" />
                   </svg>
                 </div>
               </div>
