@@ -41,7 +41,8 @@ import {
   Sparkles,
   LayoutGrid,
   DollarSign,
-  Search
+  Search,
+  MoreVertical
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/components/ui/use-toast';
@@ -802,93 +803,128 @@ const Dashboard = () => {
         !isLoading && !isError && (
           <div className="px-3 md:px-4 space-y-6 max-w-[1700px] mx-auto relative z-10 pt-6">
 
-            {/* TOP KPI CARDS: Compact 5-column layout */}
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+            {/* TOP KPI CARDS: Matching image reference */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
               {/* Card 1: Total Revenue */}
-              <div className="rounded-xl border border-white/[0.08] bg-[#0F1720] p-4 cursor-pointer relative overflow-hidden group hover:bg-[#0F1720]/80 transition-all duration-300 shadow-lg border-none" onClick={() => navigate('/administrator/transactions')}>
+              <div className="rounded-2xl border-2 border-emerald-500/50 bg-[#0F1720] p-4 cursor-pointer relative overflow-hidden group hover:bg-[#0F1720]/90 transition-all duration-300 shadow-xl" onClick={() => navigate('/administrator/transactions')}>
                 <div className="flex justify-between items-start relative z-10 mb-2">
-                  <span className="text-white/70 text-[10px] font-bold uppercase tracking-wider">Total Revenue</span>
-                  <DollarSign className="h-3.5 w-3.5 text-[#00FF9D]/60" />
+                  <span className="text-white/60 text-[10px] font-bold uppercase tracking-[0.05em]">Total Revenue</span>
+                  <MoreVertical className="h-4 w-4 text-white/40 cursor-pointer hover:text-white/70" />
                 </div>
-                <div className="flex items-baseline gap-2 relative z-10">
-                  <div className="text-2xl font-black text-white tracking-tight">{formatCurrency(typedMetrics.total_sales)}</div>
-                  <div className="text-[#00FF9D] text-[10px] font-bold">+{(typedMetrics.revenue_growth || 18.2).toFixed(1)}%</div>
+                <div className="space-y-2 relative z-10">
+                  <div className="text-2xl font-black text-white tracking-tight leading-none">{formatCurrency(typedMetrics.total_sales)}</div>
+                  <div className="flex items-center gap-1.5 text-[#00FF9D] text-[10px] font-bold bg-[#00FF9D]/10 w-max px-2.5 py-0.5 rounded-md border border-[#00FF9D]/20">
+                    <TrendingUp className="h-3 w-3" />
+                    <span>+{(typedMetrics.revenue_growth || 18.2).toFixed(1)}%</span>
+                  </div>
                 </div>
-                {/* Compact sparkline */}
-                <div className="h-6 w-full mt-3 opacity-20 group-hover:opacity-40 transition-opacity relative z-10">
-                  <svg viewBox="0 0 100 30" preserveAspectRatio="none" className="w-full h-full">
-                    <path d="M0,25 L10,20 L20,28 L30,15 L40,22 L50,10 L60,18 L70,5 L80,12 L90,2 L100,8" fill="none" stroke="#00FF9D" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+                {/* Line Chart with Gradient Fill */}
+                <div className="h-10 w-full mt-3 opacity-80 group-hover:opacity-100 transition-opacity relative z-10">
+                  <svg viewBox="0 0 100 40" preserveAspectRatio="none" className="w-full h-full">
+                    <defs>
+                      <linearGradient id="gradient-emerald" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stopColor="#00FF9D" stopOpacity="0.4" />
+                        <stop offset="100%" stopColor="#00FF9D" stopOpacity="0" />
+                      </linearGradient>
+                    </defs>
+                    <path d="M0,35 L10,32 L20,38 L30,25 L40,32 L50,20 L60,28 L70,15 L80,22 L90,12 L100,18 L100,40 L0,40 Z" fill="url(#gradient-emerald)" />
+                    <path d="M0,35 L10,32 L20,38 L30,25 L40,32 L50,20 L60,28 L70,15 L80,22 L90,12 L100,18" fill="none" stroke="#00FF9D" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
                   </svg>
                 </div>
               </div>
 
               {/* Card 2: Net Sales */}
-              <div className="rounded-xl border border-white/[0.08] bg-[#0F1720] p-4 cursor-pointer relative overflow-hidden group hover:bg-[#0F1720]/80 transition-all duration-300 shadow-lg border-none" onClick={() => navigate('/administrator/transactions')}>
+              <div className="rounded-2xl border border-white/10 bg-[#0F1720] p-4 cursor-pointer relative overflow-hidden group hover:bg-[#0F1720]/90 transition-all duration-300 shadow-xl" onClick={() => navigate('/administrator/transactions')}>
                 <div className="flex justify-between items-start relative z-10 mb-2">
-                  <span className="text-white/70 text-[10px] font-bold uppercase tracking-wider">Net Sales</span>
-                  <DollarSign className="h-3.5 w-3.5 text-[#00D1FF]/60" />
+                  <span className="text-white/60 text-[10px] font-bold uppercase tracking-[0.05em]">Net Sales</span>
+                  <MoreVertical className="h-4 w-4 text-white/40 cursor-pointer hover:text-white/70" />
                 </div>
-                <div className="flex items-baseline gap-2 relative z-10">
-                  <div className="text-2xl font-black text-white tracking-tight">{formatCurrency(typedMetrics.platform_revenue)}</div>
-                  <div className="text-[#00D1FF] text-[10px] font-bold">+{(typedMetrics.revenue_growth || 12.5).toFixed(1)}%</div>
+                <div className="space-y-2 relative z-10">
+                  <div className="text-2xl font-black text-white tracking-tight leading-none">{formatCurrency(typedMetrics.platform_revenue)}</div>
+                  <div className="flex items-center gap-1.5 text-[#00D1FF] text-[10px] font-bold bg-[#00D1FF]/10 w-max px-2.5 py-0.5 rounded-md border border-[#00D1FF]/20">
+                    <TrendingUp className="h-3 w-3" />
+                    <span>+{(typedMetrics.revenue_growth || 12.5).toFixed(1)}%</span>
+                  </div>
                 </div>
-                {/* Compact sparkline */}
-                <div className="h-6 w-full mt-3 opacity-20 group-hover:opacity-40 transition-opacity relative z-10">
-                  <svg viewBox="0 0 100 30" preserveAspectRatio="none" className="w-full h-full">
-                    <path d="M0,20 L15,25 L30,10 L45,15 L60,5 L75,20 L90,8 L100,12" fill="none" stroke="#00D1FF" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+                {/* Line Chart with Gradient Fill */}
+                <div className="h-10 w-full mt-3 opacity-80 group-hover:opacity-100 transition-opacity relative z-10">
+                  <svg viewBox="0 0 100 40" preserveAspectRatio="none" className="w-full h-full">
+                    <defs>
+                      <linearGradient id="gradient-blue" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stopColor="#00D1FF" stopOpacity="0.4" />
+                        <stop offset="100%" stopColor="#00D1FF" stopOpacity="0" />
+                      </linearGradient>
+                    </defs>
+                    <path d="M0,32 L15,35 L30,22 L45,28 L60,15 L75,30 L90,18 L100,22 L100,40 L0,40 Z" fill="url(#gradient-blue)" />
+                    <path d="M0,32 L15,35 L30,22 L45,28 L60,15 L75,30 L90,18 L100,22" fill="none" stroke="#00D1FF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
                   </svg>
                 </div>
               </div>
 
               {/* Card 3: Orders */}
-              <div className="rounded-xl border border-white/[0.08] bg-[#0F1720] p-4 cursor-pointer relative overflow-hidden group hover:bg-[#0F1720]/80 transition-all duration-300 shadow-lg border-none" onClick={() => navigate('/administrator/orders')}>
+              <div className="rounded-2xl border border-white/10 bg-[#0F1720] p-4 cursor-pointer relative overflow-hidden group hover:bg-[#0F1720]/90 transition-all duration-300 shadow-xl" onClick={() => navigate('/administrator/orders')}>
                 <div className="flex justify-between items-start relative z-10 mb-2">
-                  <span className="text-white/70 text-[10px] font-bold uppercase tracking-wider">Orders</span>
-                  <ShoppingCart className="h-3.5 w-3.5 text-[#BF5AF2]/60" />
+                  <span className="text-white/60 text-[10px] font-bold uppercase tracking-[0.05em]">Orders</span>
+                  <MoreVertical className="h-4 w-4 text-white/40 cursor-pointer hover:text-white/70" />
                 </div>
-                <div className="flex items-baseline gap-2 relative z-10">
-                  <div className="text-2xl font-black text-white tracking-tight">{formatNumber(typedMetrics.total_orders || 14890)}</div>
-                  <div className="text-[#BF5AF2] text-[10px] font-bold">+{(typedMetrics.order_growth || 9.1).toFixed(1)}%</div>
+                <div className="space-y-2 relative z-10">
+                  <div className="text-2xl font-black text-white tracking-tight leading-none">{formatNumber(typedMetrics.total_orders || 14890)}</div>
+                  <div className="flex items-center gap-1.5 text-[#BF5AF2] text-[10px] font-bold bg-[#BF5AF2]/10 w-max px-2.5 py-0.5 rounded-md border border-[#BF5AF2]/20">
+                    <TrendingUp className="h-3 w-3" />
+                    <span>+{(typedMetrics.order_growth || 9.1).toFixed(1)}%</span>
+                  </div>
                 </div>
-                {/* Compact sparkline */}
-                <div className="h-6 w-full mt-3 opacity-20 group-hover:opacity-40 transition-opacity relative z-10">
-                  <svg viewBox="0 0 100 30" preserveAspectRatio="none" className="w-full h-full">
-                    <path d="M0,15 L10,25 L25,5 L40,20 L55,10 L70,22 L85,8 L100,15" fill="none" stroke="#BF5AF2" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+                {/* Line Chart with Gradient Fill */}
+                <div className="h-10 w-full mt-3 opacity-80 group-hover:opacity-100 transition-opacity relative z-10">
+                  <svg viewBox="0 0 100 40" preserveAspectRatio="none" className="w-full h-full">
+                    <defs>
+                      <linearGradient id="gradient-purple" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stopColor="#BF5AF2" stopOpacity="0.4" />
+                        <stop offset="100%" stopColor="#BF5AF2" stopOpacity="0" />
+                      </linearGradient>
+                    </defs>
+                    <path d="M0,28 L10,35 L25,18 L40,30 L55,22 L70,32 L85,20 L100,25 L100,40 L0,40 Z" fill="url(#gradient-purple)" />
+                    <path d="M0,28 L10,35 L25,18 L40,30 L55,22 L70,32 L85,20 L100,25" fill="none" stroke="#BF5AF2" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
                   </svg>
                 </div>
               </div>
 
               {/* Card 4: Avg. Order Value */}
-              <div className="rounded-xl border border-white/[0.08] bg-[#0F1720] p-4 cursor-pointer relative overflow-hidden group hover:bg-[#0F1720]/80 transition-all duration-300 shadow-lg border-none">
+              <div className="rounded-2xl border border-white/10 bg-[#0F1720] p-4 cursor-pointer relative overflow-hidden group hover:bg-[#0F1720]/90 transition-all duration-300 shadow-xl">
                 <div className="flex justify-between items-start relative z-10 mb-2">
-                  <span className="text-white/70 text-[10px] font-bold uppercase tracking-wider">Avg. Order Value</span>
-                  <TrendingUp className="h-3.5 w-3.5 text-[#FFD600]/60" />
+                  <span className="text-white/60 text-[10px] font-bold uppercase tracking-[0.05em]">Avg. Order Value</span>
+                  <MoreVertical className="h-4 w-4 text-white/40 cursor-pointer hover:text-white/70" />
                 </div>
-                <div className="flex items-baseline gap-2 relative z-10">
-                  <div className="text-2xl font-black text-white tracking-tight">{formatCurrency(typedMetrics.average_order_value || 86.27)}</div>
+                <div className="space-y-2 relative z-10">
+                  <div className="text-2xl font-black text-white tracking-tight leading-none">{formatCurrency(typedMetrics.average_order_value || 97.75)}</div>
+                  <div className="flex items-center gap-1.5 text-[#00FF9D] text-[10px] font-bold bg-[#00FF9D]/10 w-max px-2.5 py-0.5 rounded-md border border-[#00FF9D]/20">
+                    <TrendingUp className="h-3 w-3" />
+                    <span>+{(typedMetrics.aov_change || 0).toFixed(1)}%</span>
+                  </div>
                 </div>
-                {/* Compact sparkline */}
-                <div className="h-6 w-full mt-3 opacity-20 group-hover:opacity-40 transition-opacity relative z-10">
-                  <svg viewBox="0 0 100 30" preserveAspectRatio="none" className="w-full h-full">
-                    <path d="M0,22 L15,18 L30,25 L45,15 L60,20 L75,10 L90,15 L100,5" fill="none" stroke="#FFD600" strokeWidth="2" vectorEffect="non-scaling-stroke" />
-                  </svg>
+                {/* Bar Chart */}
+                <div className="h-10 w-full mt-3 flex items-end justify-between gap-1 opacity-80 group-hover:opacity-100 transition-opacity relative z-10">
+                  {[40, 65, 30, 85, 45, 60, 35, 90, 55, 75, 40].map((h, i) => (
+                    <div key={i} className="flex-1 bg-emerald-500/40 group-hover:bg-emerald-500/60 transition-colors rounded-t-sm" style={{ height: `${h}%` }} />
+                  ))}
                 </div>
               </div>
 
-              {/* Card 5: Conversion Rate */}
-              <div className="rounded-xl border border-white/[0.08] bg-[#0F1720] p-4 cursor-pointer relative overflow-hidden group hover:bg-[#0F1720]/80 transition-all duration-300 shadow-lg border-none">
+              {/* Card 5: New Customers */}
+              <div className="rounded-2xl border border-white/10 bg-[#0F1720] p-4 cursor-pointer relative overflow-hidden group hover:bg-[#0F1720]/90 transition-all duration-300 shadow-xl">
                 <div className="flex justify-between items-start relative z-10 mb-2">
-                  <span className="text-white/70 text-[10px] font-bold uppercase tracking-wider">Conversion Rate</span>
-                  <Activity className="h-3.5 w-3.5 text-[#FF375F]/60" />
+                  <span className="text-white/60 text-[10px] font-bold uppercase tracking-[0.05em]">New Customers</span>
+                  <MoreVertical className="h-4 w-4 text-white/40 cursor-pointer hover:text-white/70" />
                 </div>
-                <div className="flex items-baseline gap-2 relative z-10">
-                  <div className="text-2xl font-black text-white tracking-tight">{(typedMetrics.conversion_rate || 3.8).toFixed(1)}%</div>
+                <div className="space-y-2 relative z-10">
+                  <div className="text-2xl font-black text-white tracking-tight leading-none">{formatNumber(typedMetrics.new_users_today || 0)}</div>
+                  <div className="h-6" /> {/* Spacer to match growth badge height */}
                 </div>
-                {/* Compact sparkline */}
-                <div className="h-6 w-full mt-3 opacity-20 group-hover:opacity-40 transition-opacity relative z-10">
-                  <svg viewBox="0 0 100 30" preserveAspectRatio="none" className="w-full h-full">
-                    <path d="M0,25 L15,22 L30,18 L45,25 L60,15 L75,18 L90,10 L100,12" fill="none" stroke="#FF375F" strokeWidth="2" vectorEffect="non-scaling-stroke" />
-                  </svg>
+                {/* Detailed Bar Chart */}
+                <div className="h-10 w-full mt-3 flex items-end justify-between gap-0.5 opacity-80 group-hover:opacity-100 transition-opacity relative z-10">
+                  {[30, 45, 25, 60, 40, 55, 30, 70, 45, 65, 35, 80, 50, 75, 40, 60, 30, 50, 45, 65, 35, 70].map((h, i) => (
+                    <div key={i} className="flex-1 bg-emerald-500/20 group-hover:bg-emerald-500/40 transition-colors rounded-t-sm" style={{ height: `${h}%` }} />
+                  ))}
                 </div>
               </div>
             </div>
@@ -969,64 +1005,61 @@ const Dashboard = () => {
               {/* Performance Panel Stack */}
               <div className="space-y-5 flex flex-col min-h-[450px]">
                 {/* Top Performance */}
-                <div className="rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(0,0,0,0.4)_100%)] p-6 relative overflow-hidden shadow-lg flex-[1.2] hover:border-[#00FF9D]/30 transition-colors">
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-white font-bold tracking-tight">Top Performance</h3>
-                    <button className="text-[#A0AAB2] hover:text-white">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" /></svg>
-                    </button>
+                <div className="rounded-2xl border border-white/10 bg-[#0F1720] p-6 relative overflow-hidden shadow-sm flex-[1.2] hover:border-[#00FF9D]/30 transition-colors">
+                  <div className="flex justify-between items-start mb-6">
+                    <h3 className="text-white/60 text-[10px] font-bold uppercase tracking-[0.05em]">Top Performance</h3>
+                    <MoreVertical className="h-4 w-4 text-white/40 cursor-pointer hover:text-white/70" />
                   </div>
                   <div className="space-y-6">
                     <div>
-                      <div className="flex justify-between text-xs font-semibold mb-2">
-                        <span className="text-[#A0AAB2] tracking-wide uppercase">Total Users</span>
-                        <span className="text-white font-bold">{formatNumber(typedMetrics.total_users)}</span>
+                      <div className="flex justify-between text-[11px] font-bold mb-2">
+                        <span className="text-[#A0AAB2] uppercase tracking-wider">Total Users</span>
+                        <span className="text-white">{formatNumber(typedMetrics.total_users)}</span>
                       </div>
-                      <div className="w-full bg-white/5 rounded-full h-[5px] overflow-hidden drop-shadow-md">
-                        <div className="bg-[#00FF9D] h-full shadow-[0_0_10px_#00FF9D]" style={{ width: '85%' }}></div>
-                      </div>
-                    </div>
-                    <div>
-                      <div className="flex justify-between text-xs font-semibold mb-2">
-                        <span className="text-[#A0AAB2] tracking-wide uppercase">Active Vendors</span>
-                        <span className="text-white font-bold">{formatNumber(typedMetrics.active_vendors)}</span>
-                      </div>
-                      <div className="w-full bg-white/5 rounded-full h-[5px] overflow-hidden drop-shadow-md">
-                        <div className="bg-[#00FF9D] h-full shadow-[0_0_10px_#00FF9D]" style={{ width: '65%' }}></div>
+                      <div className="w-full bg-white/5 rounded-full h-[6px] overflow-hidden">
+                        <div className="bg-[#00FF9D] h-full" style={{ width: '85%' }}></div>
                       </div>
                     </div>
                     <div>
-                      <div className="flex justify-between text-xs font-semibold mb-2">
-                        <span className="text-[#A0AAB2] tracking-wide uppercase">Active Products</span>
-                        <span className="text-white font-bold">{formatNumber(typedMetrics.total_products - typedMetrics.out_of_stock_products)}</span>
+                      <div className="flex justify-between text-[11px] font-bold mb-2">
+                        <span className="text-[#A0AAB2] uppercase tracking-wider">Active Vendors</span>
+                        <span className="text-white">{formatNumber(typedMetrics.active_vendors)}</span>
                       </div>
-                      <div className="w-full bg-white/5 rounded-full h-[5px] overflow-hidden drop-shadow-md">
-                        <div className="bg-[#00FF9D] h-full shadow-[0_0_10px_#00FF9D]" style={{ width: '92%' }}></div>
+                      <div className="w-full bg-white/5 rounded-full h-[6px] overflow-hidden">
+                        <div className="bg-[#00FF9D] h-full" style={{ width: '65%' }}></div>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-[11px] font-bold mb-2">
+                        <span className="text-[#A0AAB2] uppercase tracking-wider">Active Products</span>
+                        <span className="text-white">{formatNumber(typedMetrics.total_products - typedMetrics.out_of_stock_products)}</span>
+                      </div>
+                      <div className="w-full bg-white/5 rounded-full h-[6px] overflow-hidden">
+                        <div className="bg-[#00FF9D] h-full" style={{ width: '92%' }}></div>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Recent Sales Feed */}
-                <div className="rounded-2xl border border-[#00FF9D]/40 bg-[linear-gradient(180deg,rgba(0,255,157,0.08)_0%,rgba(0,0,0,0.6)_100%)] p-6 relative overflow-hidden shadow-[0_0_15px_rgba(0,255,157,0.1)] flex-[0.8] flex flex-col justify-center">
-                  <div className="absolute inset-0 border-[2px] border-[#00FF9D]/20 animate-pulse rounded-2xl pointer-events-none"></div>
-                  <h3 className="text-[#00FF9D] text-xs font-bold uppercase tracking-[0.25em] mb-4 text-center">Live Feed</h3>
+                {/* Live Feed */}
+                <div className="rounded-2xl border border-emerald-500/20 bg-[#0F1720] p-6 relative overflow-hidden shadow-sm flex-[0.8] flex flex-col justify-center border-dashed">
+                  <h3 className="text-[#00FF9D] text-[10px] font-bold uppercase tracking-[0.25em] mb-4 text-center opacity-80">Live Feed</h3>
 
                   {
                     recentOrders.length > 0 ? (
-                      <div className="text-center font-mono space-y-1">
-                        <div className="text-[#A0AAB2] text-xs uppercase tracking-wide">New order from {recentOrders[0].buyer?.full_name?.split(' ')[0] || 'Customer'}</div>
-                        <div className="text-[32px] font-bold text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.3)] tracking-tight">
+                      <div className="text-center space-y-1">
+                        <div className="text-[#A0AAB2] text-[11px] font-bold uppercase tracking-wider">New order from {recentOrders[0].buyer?.full_name?.split(' ')[0] || 'Customer'}</div>
+                        <div className="text-3xl font-black text-white tracking-tight">
                           +{formatCurrency(Number(recentOrders[0].total_amount) || 0)}
                         </div>
-                        <div className="text-[#00FF9D] text-[10px] uppercase font-bold tracking-widest mt-3 px-3 py-1 bg-[#00FF9D]/10 rounded shadow-[0_0_10px_#00FF9D] inline-block border border-[#00FF9D]/20 border-dotted">Order Processed</div>
+                        <div className="text-[#00FF9D] text-[10px] uppercase font-black tracking-widest mt-3 px-3 py-1 bg-[#00FF9D]/10 rounded-md border border-[#00FF9D]/20 inline-block">Order Processed</div>
                       </div>
                     ) : (
-                      <div className="text-center font-mono py-2">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#00FF9D]/10 mx-auto mb-3 shadow-[0_0_15px_#00FF9D]">
-                          <Loader2 className="h-6 w-6 animate-spin text-[#00FF9D]" />
+                      <div className="text-center py-2">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#00FF9D]/10 mx-auto mb-3">
+                          <Loader2 className="h-5 w-5 animate-spin text-[#00FF9D]" />
                         </div>
-                        <div className="text-[#00FF9D] text-xs uppercase tracking-widest">Listening...</div>
+                        <div className="text-[#00FF9D] text-[10px] uppercase font-bold tracking-widest opacity-60">Listening...</div>
                       </div>
                     )
                   }
@@ -1036,14 +1069,14 @@ const Dashboard = () => {
 
             {/* BOTTOM ROW: Tables & Sparkline */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-              {/* Recent Orders Table - Expanded to fill gap */}
-              <div className="lg:col-span-3 rounded-2xl border border-white/[0.08] bg-[#0F1720] relative overflow-hidden shadow-lg p-0 hover:border-[#00FF9D]/40 transition-all duration-500">
-                <div className="p-4 sm:p-6 pb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 bg-[#070b14]/50 backdrop-blur-sm border-b border-white/[0.05]">
+              {/* Transaction Stream Table */}
+              <div className="lg:col-span-3 rounded-2xl border border-white/10 bg-[#0F1720] relative overflow-hidden shadow-sm p-0 hover:border-emerald-500/30 transition-all duration-500">
+                <div className="p-4 sm:p-5 pb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 border-b border-white/[0.05]">
                   <div className="flex items-center gap-3">
-                    <div className="h-2 w-2 rounded-full bg-[#00FF9D] shadow-[0_0_10px_#00FF9D] animate-pulse"></div>
-                    <h3 className="text-white font-bold tracking-tight text-base sm:text-lg">Transaction Stream</h3>
+                    <div className="h-2 w-2 rounded-full bg-[#00FF9D] shadow-[0_0_8px_#00FF9D]"></div>
+                    <h3 className="text-white/60 text-[10px] font-bold uppercase tracking-[0.05em]">Transaction Stream</h3>
                   </div>
-                  <button className="text-[#00FF9D] hover:text-white px-4 py-1.5 bg-[#00FF9D]/10 hover:bg-[#00FF9D]/20 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all border border-[#00FF9D]/20 whitespace-nowrap" onClick={() => navigate('/administrator/orders')}>View Registry</button>
+                  <button className="text-[#00FF9D] hover:text-white px-4 py-1.5 bg-[#00FF9D]/10 hover:bg-[#00FF9D]/20 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all border border-[#00FF9D]/20 whitespace-nowrap" onClick={() => navigate('/administrator/orders')}>View Registry</button>
                 </div>
 
                 <div className="p-4 space-y-3">
