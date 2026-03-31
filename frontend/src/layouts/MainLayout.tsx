@@ -5,10 +5,12 @@ import Footer from '@/components/navigation/Footer';
 const MainLayout = () => {
   const location = useLocation();
   const hideFooter = location.pathname.startsWith('/messages') || location.pathname.startsWith('/buyer/dashboard') || location.pathname.startsWith('/store');
+  const isStorefront = location.pathname.startsWith('/store');
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
-      <main className="flex-grow pt-16">
+      <main className={`flex-grow ${isStorefront ? 'pt-0' : 'pt-16'}`}>
         <Outlet />
       </main>
       {!hideFooter && <Footer />}
