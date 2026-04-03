@@ -13,7 +13,7 @@ from .models import (
     WishlistItem, Notification, Testimonial, UserMessageSettings, PayoutRequest,
     Conversation, Message, MessageReaction, MessageReadReceipt,
     VendorAnalytics, AdministratorDashboardMetrics, MessageStatus, VendorEarnings,
-    VendorStore, Coupon, CouponUsage
+    VendorStore, Coupon, CouponUsage, StoreReview
 )
 
 User = get_user_model()
@@ -636,6 +636,33 @@ class ReviewSerializer(serializers.ModelSerializer):
             'product_name', 'rating', 'comment', 'created_at'
         )
         read_only_fields = ('user',)
+
+    def validate_rating(self, value):
+        if not (1 <= value <= 5):
+            raise serializers.ValidationError("Rating must be between 1 and 5")
+        return value
+
+class StoreReviewSerializer(serializers.ModelSerializer):
+    buyer_name = serializers.CharField(source='buyer.username', read_only=True)
+    buyer_full_name = serializers.CharField(source='buyer.full_name', read_only=True)
+    vendor_name = serializers.CharField(source='vendor.username', read_only=True)
+    buyer_image = serializers.SerializerMethodField()
+
+    class Meta:
+        model = StoreReview
+        fields = (
+            'id', 'vendor', 'vendor_name', 'buyer', 'buyer_name', 'buyer_full_name',
+            'buyer_image', 'rating', 'comment', 'status', 'created_at'
+        )
+        read_only_fields = ('vendor', 'buyer', 'status')
+
+    def get_buyer_image(self, obj):
+        if obj.buyer and obj.buyer.profile_image:
+            request = self.context.get('request')
+            if request is not None:
+                return request.build_absolute_uri(obj.buyer.profile_image.url)
+            return obj.buyer.profile_image.url
+        return None
 
     def validate_rating(self, value):
         if not (1 <= value <= 5):

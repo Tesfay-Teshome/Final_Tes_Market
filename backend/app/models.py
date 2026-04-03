@@ -343,6 +343,27 @@ class Review(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+class StoreReview(models.Model):
+    STATUS_CHOICES = (
+        ('pending', 'Pending Approval'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    )
+    
+    vendor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='store_reviews', limit_choices_to={'user_type': 'vendor'})
+    buyer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='submitted_store_reviews')
+    rating = models.IntegerField(default=5)
+    comment = models.TextField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Store Review by {self.buyer.email} for {self.vendor.email}"
+
 class Wishlist(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -422,6 +443,7 @@ class Notification(models.Model):
         ('system', 'System Notification'),
         ('promotion', 'Promotion'),
         ('account', 'Account Update'),
+        ('store_review', 'Store Review'),
     ]
     
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')

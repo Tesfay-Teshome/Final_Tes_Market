@@ -41,6 +41,14 @@ export const storefrontAPI = {
   }
 };
 
+// Store Review API
+export const storeReviewAPI = {
+  getReviews: (slug: string, params?: any) => api.get(`/api/public/stores/${slug}/reviews/`, { params }),
+  submitReview: (slug: string, data: any) => api.post(`/api/public/stores/${slug}/reviews/`, data),
+  approveReview: (reviewId: string | number) => api.post(`/api/vendor/store-reviews/${reviewId}/approve/`),
+  rejectReview: (reviewId: string | number) => api.post(`/api/vendor/store-reviews/${reviewId}/reject/`),
+};
+
 const sanitizeUrl = (value?: string) => value?.trim().replace(/\/$/, '') ?? '';
 const LOCALHOST_REGEX = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i;
 

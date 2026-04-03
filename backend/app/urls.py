@@ -86,10 +86,15 @@ urlpatterns = [
     path('vendor/store/', storefront_views.vendor_store, name='vendor-store'),
     path('media/upload/', storefront_views.media_upload, name='media-upload'),
     # Public Storefront
+    path('public/stores/<slug:slug>/reviews/', storefront_views.public_store_reviews, name='public-store-reviews'),
     path('public/stores/<slug:slug>/', storefront_views.public_store, name='public-store'),
     path('public/stores/by-vendor/<int:vendor_id>/', storefront_views.public_store_by_vendor, name='public-store-by-vendor'),
     path('public/stores/<slug:slug>/preview/', storefront_views.public_store_preview, name='public-store-preview'),
     path('public/stores/<slug:slug>/products/', storefront_views.public_store_products, name='public-store-products'),
+    
+    path('vendor/store-reviews/<int:review_id>/approve/', storefront_views.vendor_approve_review, name='vendor-approve-review'),
+    path('vendor/store-reviews/<int:review_id>/reject/', storefront_views.vendor_reject_review, name='vendor-reject-review'),
+
     # AI proxy
     path('ai/generate/', views.ai_generate, name='ai-generate'),
     # Authentication endpoints

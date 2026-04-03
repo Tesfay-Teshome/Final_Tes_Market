@@ -16,6 +16,7 @@ import {
   X,
   Bell,
   MessageSquare,
+  Star
 } from 'lucide-react';
 import { RootState } from '@/store';
 import { useDispatch } from 'react-redux';
@@ -23,7 +24,7 @@ import { logout } from '@/store/slices/authSlice';
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import tesLogo from '@/pages/images/ChatGPT Image Nov 17, 2025, 04_28_14 PM.png';
-import { resolveMediaUrl } from '@/services/api';
+import { resolveMediaUrl, storeReviewAPI } from '@/services/api';
 
 const Navbar = () => {
   const dispatch = useDispatch();
@@ -41,11 +42,43 @@ const Navbar = () => {
   const notificationsRef = useRef<HTMLDivElement | null>(null);
   const userImage = resolveMediaUrl(user?.profile_image);
 
+  const [pendingReviewNotification, setPendingReviewNotification] = useState<any>(null);
+
+  useEffect(() => {
+    const pendingReview = notifications.find((n: any) => n.notification_type === 'store_review' && !n.confirmed_by_vendor);
+    if (pendingReview) {
+      setPendingReviewNotification(pendingReview);
+    } else {
+      setPendingReviewNotification(null);
+    }
+  }, [notifications]);
+
+  const handleApproveReview = async (reviewId: string | number, notificationId: string | number) => {
+    try {
+      await storeReviewAPI.approveReview(reviewId);
+      setNotifications(prev => prev.map(n => n.id === notificationId ? { ...n, confirmed_by_vendor: true, is_read: true } : n));
+      setUnreadNotifications(prev => Math.max(0, prev - 1));
+    } catch (err) {
+      console.error('Failed to approve review', err);
+    }
+  };
+
+  const handleRejectReview = async (reviewId: string | number, notificationId: string | number) => {
+    try {
+      await storeReviewAPI.rejectReview(reviewId);
+      setNotifications(prev => prev.map(n => n.id === notificationId ? { ...n, confirmed_by_vendor: true, is_read: true } : n));
+      setUnreadNotifications(prev => Math.max(0, prev - 1));
+    } catch (err) {
+      console.error('Failed to reject review', err);
+    }
+  };
+
+
   // Fetch notifications and unread messages count
   useEffect(() => {
     let notificationInterval: NodeJS.Timeout;
     let messageInterval: NodeJS.Timeout;
-    
+
     const fetchNotifications = async () => {
       if (isAuthenticated) {
         try {
@@ -53,7 +86,7 @@ const Navbar = () => {
           const response = await notificationsAPI.getAll();
           const notificationsData = Array.isArray(response.data) ? response.data : [];
           setNotifications(notificationsData);
-          
+
           // Get unread count from the API if available, or calculate from notifications
           try {
             const unreadResponse = await notificationsAPI.getUnreadCount();
@@ -90,12 +123,12 @@ const Navbar = () => {
         setUnreadMessages(0);
       }
     };
-    
+
     // Initial fetches with error handling
     if (isAuthenticated) {
       fetchNotifications().catch(console.error);
       fetchUnreadMessages().catch(console.error);
-      
+
       // Set up intervals for periodic updates (every 30 seconds)
       notificationInterval = setInterval(() => {
         fetchNotifications().catch(console.error);
@@ -118,22 +151,22 @@ const Navbar = () => {
         try {
           const { notificationsAPI } = await import('@/services/api');
           await notificationsAPI.markAllAsRead();
-          
+
           // Update local state to reflect read status
-          setNotifications(prev => 
+          setNotifications(prev =>
             prev.map(n => ({
               ...n,
               is_read: true
             }))
           );
           setUnreadNotifications(0);
-          
+
         } catch (e) {
           console.error('Error marking notifications as read:', e);
         }
       }
     };
-    
+
     markAllAsRead();
   }, [isNotificationsOpen, unreadNotifications]);
 
@@ -148,25 +181,25 @@ const Navbar = () => {
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as Node;
-      
+
       // Close user menu if clicked outside
       if (isUserMenuOpen && userMenuRef.current && !userMenuRef.current.contains(target)) {
         setIsUserMenuOpen(false);
       }
-      
+
       // Close notifications if clicked outside
       if (isNotificationsOpen && notificationsRef.current && !notificationsRef.current.contains(target)) {
         setIsNotificationsOpen(false);
       }
     };
-    
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setIsUserMenuOpen(false);
         setIsNotificationsOpen(false);
       }
     };
-    
+
     document.addEventListener('mousedown', handleClickOutside);
     document.addEventListener('keydown', handleKeyDown);
     return () => {
@@ -188,19 +221,19 @@ const Navbar = () => {
           <div className="flex justify-between items-center h-full">
             {/* Logo and Primary Navigation */}
             <div className="flex items-center h-full flex-shrink-0">
-              <Link 
-                to="/" 
+              <Link
+                to="/"
                 className="flex items-center h-full px-1 sm:px-2 transition-all duration-300 group"
               >
                 <div className="relative flex-shrink-0 overflow-visible">
-                  <img 
+                  <img
                     src={tesLogo}
                     alt="TesMarket"
                     className="block h-[100px] sm:h-[120px] md:h-[120px] lg:h-[120px] w-auto object-contain drop-shadow-lg"
                   />
                 </div>
               </Link>
-              
+
               <div className="hidden lg:flex items-center h-full ml-6 xl:ml-8 space-x-2 md:space-x-10">
                 <motion.div whileHover={{ y: -2, scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.2 }}>
                   <Link
@@ -304,151 +337,165 @@ const Navbar = () => {
                     </motion.div>
 
                     <AnimatePresence>
-                        {isNotificationsOpen && (
-                          <motion.div
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}
-                            transition={{ duration: 0.2 }}
-                            className="absolute right-0 top-full mt-2 w-80 bg-white rounded-lg shadow-xl overflow-hidden z-50 border border-gray-200"
-                            style={{ maxHeight: '400px' }}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <div className="p-4 border-b border-gray-200 bg-white">
-                              <div className="flex justify-between items-center">
-                                <h3 className="text-lg font-medium text-gray-900">Notifications</h3>
-                                {unreadNotifications > 0 && (
-                                  <button
-                                    onClick={async (e) => {
-                                      e.stopPropagation();
-                                      try {
-                                        const { notificationsAPI } = await import('@/services/api');
-                                        await notificationsAPI.markAllAsRead();
-                                        setNotifications(prev => 
-                                          prev.map(n => ({
-                                            ...n,
-                                            is_read: true
-                                          }))
-                                        );
-                                        setUnreadNotifications(0);
-                                      } catch (error) {
-                                        console.error('Error marking all as read:', error);
-                                      }
-                                    }}
-                                    className="text-sm text-primary-600 hover:text-primary-800"
-                                  >
-                                    Mark all as read
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                            <div className="max-h-96 overflow-y-auto divide-y divide-gray-100">
-                              {notifications.length > 0 ? (
-                                notifications.map((notification) => (
-                                  <div
-                                    key={notification.id}
-                                    className={`p-4 hover:bg-gray-50 transition-colors ${
-                                      !notification.is_read ? 'bg-blue-50' : ''
-                                    }`}
-                                    onClick={async () => {
-                                      try {
-                                        const { notificationsAPI } = await import('@/services/api');
-                                        if (!notification.is_read) {
-                                          await notificationsAPI.markAsRead(notification.id);
-                                          setNotifications(prev => 
-                                            prev.map(n => 
-                                              n.id === notification.id 
-                                                ? { ...n, is_read: true } 
-                                                : n
-                                            )
-                                          );
-                                          setUnreadNotifications(prev => Math.max(0, prev - 1));
-                                        }
-                                        // Navigate to the related item if applicable
-                                        if (notification.related_id) {
-                                          // You can add navigation logic here based on notification type
-                                          // For example: navigate(`/order/${notification.related_id}`);
-                                        }
-                                      } catch (error) {
-                                        console.error('Error handling notification click:', error);
-                                      }
-                                    }}
-                                  >
-                                    <div className="flex items-start">
-                                      <div className="flex-shrink-0 mt-0.5">
-                                        <div className={`h-9 w-9 rounded-full flex items-center justify-center ${
-                                          notification.notification_type === 'order' 
-                                            ? 'bg-green-100 text-green-600' 
-                                            : notification.notification_type === 'system'
-                                            ? 'bg-blue-100 text-blue-600'
-                                            : 'bg-primary-100 text-primary-600'
-                                        }`}>
-                                          <Bell className="h-4 w-4" />
-                                        </div>
-                                      </div>
-                                      <div className="ml-3 flex-1 min-w-0">
-                                        <p className="text-sm font-medium text-gray-900 truncate">
-                                          {notification.title}
-                                        </p>
-                                        <p className="mt-1 text-sm text-gray-500 line-clamp-2">
-                                          {notification.message}
-                                        </p>
-                                        <div className="mt-1 flex items-center justify-between">
-                                          <span className="text-xs text-gray-400">
-                                            {new Date(notification.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                          </span>
-                                          {!notification.is_read && (
-                                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
-                                              New
-                                            </span>
-                                          )}
-                                       </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                ))
-                              ) : (
-                                <div className="p-6 text-center">
-                                  <Bell className="mx-auto h-10 w-10 text-gray-400" />
-                                  <h3 className="mt-2 text-sm font-medium text-gray-900">No notifications</h3>
-                                  <p className="mt-1 text-sm text-gray-500">You don't have any notifications yet.</p>
-                                </div>
-                              )}
-                            </div>
-                            <div className="p-3 bg-gray-50 text-center border-t border-gray-200">
-                              <Link
-                                to="/notifications"
-                                className="inline-flex items-center justify-center w-full text-sm font-medium text-primary-600 hover:text-primary-800"
-                                onClick={async (e) => {
-                                  e.preventDefault();
-                                  setIsNotificationsOpen(false);
-                                  
-                                  // Mark all as read when going to notifications page
-                                  if (unreadNotifications > 0) {
+                      {isNotificationsOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          transition={{ duration: 0.2 }}
+                          className="absolute right-0 top-full mt-2 w-80 bg-white rounded-lg shadow-xl overflow-hidden z-50 border border-gray-200"
+                          style={{ maxHeight: '400px' }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="p-4 border-b border-gray-200 bg-white">
+                            <div className="flex justify-between items-center">
+                              <h3 className="text-lg font-medium text-gray-900">Notifications</h3>
+                              {unreadNotifications > 0 && (
+                                <button
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
                                     try {
                                       const { notificationsAPI } = await import('@/services/api');
                                       await notificationsAPI.markAllAsRead();
-                                      setNotifications(prev => 
-                                        prev.map(n => ({ ...n, is_read: true }))
+                                      setNotifications(prev =>
+                                        prev.map(n => ({
+                                          ...n,
+                                          is_read: true
+                                        }))
                                       );
                                       setUnreadNotifications(0);
                                     } catch (error) {
                                       console.error('Error marking all as read:', error);
                                     }
-                                  }
-                                  
-                                  // Navigate to notifications page
-                                  window.location.href = '/notifications';
-                                }}
-                              >
-                                View all notifications
-                                <svg className="ml-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                </svg>
-                              </Link>
+                                  }}
+                                  className="text-sm text-primary-600 hover:text-primary-800"
+                                >
+                                  Mark all as read
+                                </button>
+                              )}
                             </div>
-                          </motion.div>
-                        )}
+                          </div>
+                          <div className="max-h-96 overflow-y-auto divide-y divide-gray-100">
+                            {notifications.length > 0 ? (
+                              notifications.map((notification) => (
+                                <div
+                                  key={notification.id}
+                                  className={`p-4 hover:bg-gray-50 transition-colors ${!notification.is_read ? 'bg-blue-50' : ''
+                                    }`}
+                                  onClick={async () => {
+                                    try {
+                                      const { notificationsAPI } = await import('@/services/api');
+                                      if (!notification.is_read) {
+                                        await notificationsAPI.markAsRead(notification.id);
+                                        setNotifications(prev =>
+                                          prev.map(n =>
+                                            n.id === notification.id
+                                              ? { ...n, is_read: true }
+                                              : n
+                                          )
+                                        );
+                                        setUnreadNotifications(prev => Math.max(0, prev - 1));
+                                      }
+                                      // Navigate to the related item if applicable
+                                      if (notification.related_id) {
+                                        // You can add navigation logic here based on notification type
+                                        // For example: navigate(`/order/${notification.related_id}`);
+                                      }
+                                    } catch (error) {
+                                      console.error('Error handling notification click:', error);
+                                    }
+                                  }}
+                                >
+                                  <div className="flex items-start">
+                                    <div className="flex-shrink-0 mt-0.5">
+                                      <div className={`h-9 w-9 rounded-full flex items-center justify-center ${notification.notification_type === 'order'
+                                        ? 'bg-green-100 text-green-600'
+                                        : notification.notification_type === 'system'
+                                          ? 'bg-blue-100 text-blue-600'
+                                          : 'bg-primary-100 text-primary-600'
+                                        }`}>
+                                        <Bell className="h-4 w-4" />
+                                      </div>
+                                    </div>
+                                    <div className="ml-3 flex-1 min-w-0">
+                                      <p className="text-sm font-medium text-gray-900 truncate">
+                                        {notification.title}
+                                      </p>
+                                      <p className="mt-1 text-sm text-gray-500 line-clamp-2">
+                                        {notification.message}
+                                      </p>
+                                      <div className="mt-1 flex items-center justify-between">
+                                        <span className="text-xs text-gray-400">
+                                          {new Date(notification.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </span>
+                                        {!notification.is_read && (
+                                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
+                                            New
+                                          </span>
+                                        )}
+                                      </div>
+                                      {notification.notification_type === 'store_review' && !notification.confirmed_by_vendor && (
+                                        <div className="mt-2 flex items-center gap-2">
+                                          <button
+                                            onClick={(e) => { e.stopPropagation(); handleApproveReview(notification.related_id, notification.id); }}
+                                            className="px-2 py-1 text-xs bg-emerald-500 text-white rounded font-bold hover:bg-emerald-600 transition-colors shadow"
+                                          >
+                                            Approve
+                                          </button>
+                                          <button
+                                            onClick={(e) => { e.stopPropagation(); handleRejectReview(notification.related_id, notification.id); }}
+                                            className="px-2 py-1 text-xs bg-red-100 text-red-600 rounded font-bold hover:bg-red-200 transition-colors shadow"
+                                          >
+                                            Reject
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="p-6 text-center">
+                                <Bell className="mx-auto h-10 w-10 text-gray-400" />
+                                <h3 className="mt-2 text-sm font-medium text-gray-900">No notifications</h3>
+                                <p className="mt-1 text-sm text-gray-500">You don't have any notifications yet.</p>
+                              </div>
+                            )}
+                          </div>
+                          <div className="p-3 bg-gray-50 text-center border-t border-gray-200">
+                            <Link
+                              to="/notifications"
+                              className="inline-flex items-center justify-center w-full text-sm font-medium text-primary-600 hover:text-primary-800"
+                              onClick={async (e) => {
+                                e.preventDefault();
+                                setIsNotificationsOpen(false);
+
+                                // Mark all as read when going to notifications page
+                                if (unreadNotifications > 0) {
+                                  try {
+                                    const { notificationsAPI } = await import('@/services/api');
+                                    await notificationsAPI.markAllAsRead();
+                                    setNotifications(prev =>
+                                      prev.map(n => ({ ...n, is_read: true }))
+                                    );
+                                    setUnreadNotifications(0);
+                                  } catch (error) {
+                                    console.error('Error marking all as read:', error);
+                                  }
+                                }
+
+                                // Navigate to notifications page
+                                window.location.href = '/notifications';
+                              }}
+                            >
+                              View all notifications
+                              <svg className="ml-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                              </svg>
+                            </Link>
+                          </div>
+                        </motion.div>
+                      )}
                     </AnimatePresence>
                   </div>
 
@@ -493,7 +540,7 @@ const Navbar = () => {
                         className="hidden lg:flex text-white hover:text-emerald-100 transition-all duration-300 p-1.5 lg:p-2 rounded-lg hover:bg-white/10 backdrop-blur-sm group"
                         title="Admin Dashboard"
                       >
-                        <LayoutDashboard className="h-5 w-5 lg:h-6 lg:w-6 group-hover:scale-105 transition-transform duration-300" />
+                        <LayoutDashboard className="h-5 w-5 lg:h-6 lg:h-6 group-hover:scale-105 transition-transform duration-300" />
                       </Link>
                     </motion.div>
                   )}
@@ -506,7 +553,7 @@ const Navbar = () => {
                         className="hidden lg:flex text-white hover:text-emerald-100 transition-all duration-300 p-1.5 lg:p-2 rounded-lg hover:bg-white/10 backdrop-blur-sm group"
                         title="Vendor Dashboard"
                       >
-                        <Store className="h-5 w-5 lg:h-6 lg:w-6 group-hover:scale-105 transition-transform duration-300" />
+                        <Store className="h-5 w-5 lg:h-6 lg:h-6 group-hover:scale-105 transition-transform duration-300" />
                       </Link>
                     </motion.div>
                   )}
@@ -520,7 +567,7 @@ const Navbar = () => {
                           className="hidden lg:flex text-white hover:text-emerald-100 transition-all duration-300 relative group p-1.5 lg:p-2 rounded-lg hover:bg-white/10 backdrop-blur-sm"
                           title="My Dashboard"
                         >
-                          <LayoutDashboard className="h-5 w-5 lg:h-6 lg:w-6 group-hover:scale-105 transition-transform duration-300" />
+                          <LayoutDashboard className="h-5 w-5 lg:h-6 lg:h-6 group-hover:scale-105 transition-transform duration-300" />
                         </Link>
                       </motion.div>
                       <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} transition={{ duration: 0.2 }}>
@@ -529,7 +576,7 @@ const Navbar = () => {
                           className="hidden lg:flex text-white hover:text-emerald-100 transition-all duration-300 relative group p-1.5 lg:p-2 rounded-lg hover:bg-white/10 backdrop-blur-sm"
                           title="Wishlist"
                         >
-                          <Heart className="h-5 w-5 lg:h-6 lg:w-6 group-hover:scale-105 transition-transform duration-300" />
+                          <Heart className="h-5 w-5 lg:h-6 lg:h-6 group-hover:scale-105 transition-transform duration-300" />
                         </Link>
                       </motion.div>
                       <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} transition={{ duration: 0.2 }}>
@@ -538,8 +585,8 @@ const Navbar = () => {
                           className="flex text-white hover:text-emerald-100 transition-all duration-300 relative group p-1.5 lg:p-2 rounded-lg hover:bg-white/10 backdrop-blur-sm"
                           title="Shopping Cart"
                         >
-                          <ShoppingCart className="h-5 w-5 lg:h-6 lg:w-6 group-hover:scale-105 transition-transform duration-300" />
-                          { (Array.isArray(cartItems) ? cartItems.length : 0) > 0 && (
+                          <ShoppingCart className="h-5 w-5 lg:h-6 lg:h-6 group-hover:scale-105 transition-transform duration-300" />
+                          {(Array.isArray(cartItems) ? cartItems.length : 0) > 0 && (
                             <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[9px] rounded-full h-4 w-4 flex items-center justify-center font-bold shadow-lg animate-pulse">
                               {Array.isArray(cartItems) ? cartItems.length : 0}
                             </span>
@@ -552,7 +599,7 @@ const Navbar = () => {
                   {/* User Menu - Hidden on mobile */}
                   <div className="hidden sm:flex relative h-full items-center" ref={userMenuRef}>
                     <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.2 }}>
-                      <button 
+                      <button
                         onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                         className="flex items-center h-full px-1 sm:px-2 py-1 text-white hover:text-emerald-100 transition-all duration-300 focus:outline-none rounded-lg hover:bg-white/10 backdrop-blur-sm group border border-transparent hover:border-white/20"
                       >
@@ -623,7 +670,7 @@ const Navbar = () => {
                                 )}
                                 <div>
                                   <p className="text-sm font-bold text-gray-900">
-                                    {user?.first_name && user?.last_name 
+                                    {user?.first_name && user?.last_name
                                       ? `${user.first_name} ${user.last_name}`
                                       : user?.username}
                                   </p>
@@ -641,7 +688,7 @@ const Navbar = () => {
                             </div>
                             <p className="text-xs text-gray-500 truncate">{user?.email}</p>
                           </div>
-                          
+
                           <div className="py-1">
                             <Link
                               to="/profile"
@@ -651,7 +698,7 @@ const Navbar = () => {
                               <Settings className="h-4 w-4 mr-2" />
                               Profile Settings
                             </Link>
-                            
+
                             <Link
                               to="/orders"
                               className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
@@ -660,7 +707,7 @@ const Navbar = () => {
                               <Package className="h-4 w-4 mr-2" />
                               My Orders
                             </Link>
-                            
+
                             <button
                               onClick={handleLogout}
                               className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
@@ -774,7 +821,7 @@ const Navbar = () => {
                       <div className="px-4 py-2">
                         <p className="text-sm font-bold text-white/80 uppercase tracking-wide">Account</p>
                       </div>
-                      
+
                       {/* User Info */}
                       <div className="flex items-center px-4 py-3 bg-white/10 backdrop-blur-sm rounded-lg mb-2">
                         {user && userImage ? (
@@ -804,7 +851,7 @@ const Navbar = () => {
                           <Settings className="h-5 w-5 mr-3" />
                           Profile Settings
                         </Link>
-                        
+
                         <Link
                           to="/orders"
                           className="flex items-center px-4 py-3 rounded-lg text-base font-bold text-white hover:text-emerald-100 hover:bg-white/10 backdrop-blur-sm transition-all duration-300"
@@ -926,6 +973,47 @@ const Navbar = () => {
                     </div>
                   </div>
                 )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Global Vendor Store Review Popup */}
+        <AnimatePresence>
+          {pendingReviewNotification && (
+            <motion.div
+              initial={{ opacity: 0, y: 50, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 50, scale: 0.9 }}
+              className="fixed bottom-6 right-6 z-[200] max-w-sm w-full bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden"
+            >
+              <div className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                    <Star className="w-5 h-5 fill-current" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-gray-900">{pendingReviewNotification.title}</h4>
+                    <p className="text-[10px] text-emerald-600 font-black tracking-widest uppercase">Action Required</p>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-600 mb-6 leading-relaxed">
+                  {pendingReviewNotification.message}
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => handleApproveReview(pendingReviewNotification.related_id, pendingReviewNotification.id)}
+                    className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-bold transition-all shadow-lg hover:shadow-emerald-500/20 hover:-translate-y-0.5"
+                  >
+                    Approve
+                  </button>
+                  <button
+                    onClick={() => handleRejectReview(pendingReviewNotification.related_id, pendingReviewNotification.id)}
+                    className="flex-1 py-2.5 bg-gray-100 hover:bg-red-50 hover:text-red-600 text-gray-600 rounded-xl text-sm font-bold transition-all"
+                  >
+                    Reject
+                  </button>
+                </div>
               </div>
             </motion.div>
           )}

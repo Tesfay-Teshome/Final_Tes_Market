@@ -8,8 +8,8 @@ from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from django.core.files.storage import default_storage
 
-from .models import VendorStore, Product
-from .serializers import ProductSerializer
+from .models import VendorStore, Product, StoreReview, Notification
+from .serializers import ProductSerializer, StoreReviewSerializer
 
 
 class InlineVendorStoreSerializer(serializers.ModelSerializer):
@@ -169,3 +169,97 @@ def public_store_preview(request, slug: str):
         return Response({'detail': 'Store not found'}, status=status.HTTP_404_NOT_FOUND)
     data = InlineVendorStoreSerializer(store, context={'request': request}).data
     return Response({'store': data})
+
+@api_view(["GET", "POST"]) 
+@permission_classes([permissions.AllowAny])
+def public_store_reviews(request, slug: str):
+    """Fetch approved store reviews or submit a new review"""
+    store = VendorStore.objects.filter(slug__iexact=slug).first()
+    if not store:
+        return Response({'detail': 'Store not found'}, status=status.HTTP_404_NOT_FOUND)
+    
+    if request.method == "GET":
+        qs = StoreReview.objects.filter(vendor=store.vendor, status='approved').order_by('-created_at')
+        
+        paginator = PageNumberPagination()
+        paginator.page_size_query_param = 'page_size'
+        page = paginator.paginate_queryset(qs, request)
+        ser = StoreReviewSerializer(page, many=True, context={'request': request})
+        return paginator.get_paginated_response(ser.data)
+        
+    if request.method == "POST":
+        if not request.user.is_authenticated:
+            return Response({'detail': 'Authentication required to post a review'}, status=status.HTTP_401_UNAUTHORIZED)
+            
+        data = request.data.copy()
+        
+        # We need to pass vendor and buyer securely
+        ser = StoreReviewSerializer(data=data, context={'request': request})
+        ser.is_valid(raise_exception=True)
+        review = ser.save(vendor=store.vendor, buyer=request.user, status='pending')
+        
+        # Create notification for vendor
+        Notification.objects.create(
+            user=store.vendor,
+            title='New Storefront Review',
+            message=f'{request.user.email} left a review for your store. It requires your approval.',
+            notification_type='store_review',
+            related_id=str(review.id),
+            requires_confirmation=True,
+            is_read=False
+        )
+        
+        return Response(StoreReviewSerializer(review, context={'request': request}).data, status=status.HTTP_201_CREATED)
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def vendor_approve_review(request, review_id: int):
+    """Approve a pending store review"""
+    review = StoreReview.objects.filter(id=review_id, vendor=request.user).first()
+    if not review:
+        return Response({'detail': 'Review not found or permission denied'}, status=status.HTTP_404_NOT_FOUND)
+        
+    review.status = 'approved'
+    review.save()
+    
+    # mark notification as confirmed
+    Notification.objects.filter(
+        user=request.user, 
+        notification_type='store_review', 
+        related_id=str(review.id)
+    ).update(confirmed_by_vendor=True, confirmed_at=timezone.now(), is_read=True)
+    
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    admin_users = User.objects.filter(user_type='administrator')
+    for admin in admin_users:
+        Notification.objects.create(
+            user=admin,
+            title='Storefront Review Approved',
+            message=f'Vendor {request.user.username} has approved a storefront review.',
+            notification_type='system',
+            related_id=str(review.id)
+        )
+    
+    return Response({'detail': 'Review approved successfully'})
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def vendor_reject_review(request, review_id: int):
+    """Reject a pending store review"""
+    review = StoreReview.objects.filter(id=review_id, vendor=request.user).first()
+    if not review:
+        return Response({'detail': 'Review not found or permission denied'}, status=status.HTTP_404_NOT_FOUND)
+        
+    review.status = 'rejected'
+    review.save()
+    
+    # mark notification as confirmed
+    Notification.objects.filter(
+        user=request.user, 
+        notification_type='store_review', 
+        related_id=str(review.id)
+    ).update(confirmed_by_vendor=True, confirmed_at=timezone.now(), is_read=True)
+    
+    return Response({'detail': 'Review rejected successfully'})
+
