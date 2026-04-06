@@ -140,11 +140,15 @@ const StorefrontPage: React.FC = () => {
       storeReviewAPI.getReviews(slug).catch(() => ({ data: { results: [] } })),
     ])
       .then(([storeRes, productsRes, reviewsRes]) => {
-        const s = storeRes.data?.store;
+        const s = storeRes.data?.store || storeRes.data;
         const p = productsRes.data?.results || productsRes.data || [];
         setStore(s);
         setProducts(p);
-        setStoreReviews(reviewsRes.data?.results || reviewsRes.data || []);
+
+        // Use more robust extraction for reviews data (handles paginated or raw array)
+        const rawReviews = reviewsRes.data;
+        const reviewsData = rawReviews?.results || (Array.isArray(rawReviews) ? rawReviews : []);
+        setStoreReviews(reviewsData);
 
         // Prioritize vendor from store object, fallback to first product's vendor
         const v = storeRes.data?.vendor || s?.vendor || p[0]?.vendor;
@@ -197,7 +201,7 @@ const StorefrontPage: React.FC = () => {
           <div className="flex items-center gap-5 text-xs font-bold uppercase tracking-widest text-white/40">
             <div className="flex items-center gap-2">
               <Store className="w-3 h-3 text-[var(--store-accent)]" />
-              <span className="text-white/60">{store?.display_name || slug}</span>
+              <span className="text-white/60">{store?.display_name || (store?.slug ? store.slug : slug)}</span>
             </div>
             <div className="w-px h-3 bg-white/10" />
             <div className="flex items-center gap-2">
@@ -238,7 +242,7 @@ const StorefrontPage: React.FC = () => {
           <span className="mx-2"> &gt; </span>
           <span className="hover:text-white transition-colors">Vendors</span>
           <span className="mx-2"> &gt; </span>
-          <span className="text-white/60">{store?.display_name || slug}</span>
+          <span className="text-white/60">{store?.display_name || (store?.slug ? store.slug : slug)}</span>
         </div>
 
         {!store?.homepage_layout && (
@@ -263,7 +267,7 @@ const StorefrontPage: React.FC = () => {
                 className={`${getHeadingSize('h1')} font-medium mb-6 leading-none tracking-tight text-white/95 drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)]`}
                 style={{ fontFamily: `var(--store-heading-font), serif` }}
               >
-                {store?.display_name || slug}
+                {store?.display_name || (store?.slug ? store.slug : slug)}
               </h1>
               <p className="text-xl md:text-3xl font-serif italic text-[var(--store-accent)]/60 mb-12 tracking-wide font-light">
                 {store?.socials?.valueProposition || "Experience the art of artisanal excellence"}

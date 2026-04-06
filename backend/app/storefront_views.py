@@ -182,6 +182,7 @@ def public_store_reviews(request, slug: str):
         qs = StoreReview.objects.filter(vendor=store.vendor, status='approved').order_by('-created_at')
         
         paginator = PageNumberPagination()
+        paginator.page_size = 10
         paginator.page_size_query_param = 'page_size'
         page = paginator.paginate_queryset(qs, request)
         ser = StoreReviewSerializer(page, many=True, context={'request': request})
