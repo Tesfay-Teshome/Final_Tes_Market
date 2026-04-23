@@ -34,16 +34,17 @@ const authSlice = createSlice({
       state.error = action.payload;
       state.loading = false;
     },
-    loginSuccess: (state, action: PayloadAction<{ 
-      user: User; 
-      accessToken: string; 
-      refreshToken: string 
+    loginSuccess: (state, action: PayloadAction<{
+      user: User;
+      accessToken: string;
+      refreshToken: string
     }>) => {
       const { user, accessToken, refreshToken } = action.payload;
       state.user = user;
       state.isAuthenticated = true;
       state.loading = false;
       state.error = null;
+      // Store tokens in localStorage for persistent session management
       localStorage.setItem('access_token', accessToken);
       localStorage.setItem('refresh_token', refreshToken);
     },
@@ -52,17 +53,18 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
       state.loading = false;
       state.error = null;
+      // Clear tokens from localStorage
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
     },
   },
 });
 
-export const { 
-  setUser, 
-  setLoading, 
-  setAuthError, 
-  loginSuccess, 
-  logout 
+export const {
+  setUser,
+  setLoading,
+  setAuthError,
+  loginSuccess,
+  logout
 } = authSlice.actions;
 export default authSlice.reducer;

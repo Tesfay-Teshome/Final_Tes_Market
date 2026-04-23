@@ -40,7 +40,7 @@ ALLOWED_HOSTS_ENV = os.environ.get('ALLOWED_HOSTS', '')
 if ALLOWED_HOSTS_ENV:
     ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_ENV.split(',')]
 else:
-    ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.8.5', '192.168.1.5', '192.168.8.179']
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.8.5', '192.168.1.5', '192.168.8.179', '192.168.8.7']
 
 
 # Application definition
@@ -209,8 +209,9 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
-    # No default permission class - let each ViewSet control its own permissions
-    # This allows public endpoints (products, categories, testimonials) while keeping others secure
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
 }
 
 # JWT Settings
@@ -237,7 +238,7 @@ REST_AUTH = {
     'USE_JWT': True,
     'JWT_AUTH_COOKIE': 'access_token',
     'JWT_AUTH_REFRESH_COOKIE': 'refresh_token',
-    'JWT_AUTH_HTTPONLY': False,
+    'JWT_AUTH_HTTPONLY': False,  # Restored: Allow frontend access to tokens via localStorage
     'USER_DETAILS_SERIALIZER': 'backend.app.serializers.UserSerializer',
     'TOKEN_MODEL': None,
 }
@@ -267,14 +268,16 @@ else:
         "http://192.168.1.5:3000",
         "http://192.168.1.21:3000",
         "http://192.168.8.179:3000",
+        "http://192.168.8.7:3000",
+        "http://192.168.8.7:3001",
         "http://localhost:3001",
         "http://127.0.0.1:3001",
         "http://192.168.8.179:3001",
         "http://192.168.1.21:3001",
     ]
 
-CORS_EXPOSE_HEADERS = ['Content-Type', 'Authorization']
-CORS_ALLOW_ALL_ORIGINS = False
+CORS_EXPOSE_HEADERS = ['Content-Type', 'Authorization', 'X-Total-Count']
+CORS_ALLOW_ALL_ORIGINS = True  # Relaxed for development stability
 CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOW_METHODS = [
@@ -311,30 +314,34 @@ else:
         'http://192.168.1.5:3000',
         'http://192.168.8.179:3000',
         'http://192.168.8.179:3001',
+        'http://192.168.8.7:3000',
+        'http://192.168.8.7:3001',
         'http://192.168.1.21:3000',
         'http://192.168.1.21:3001',
         'http://localhost:3001',
         'http://127.0.0.1:3001',
+        'http://localhost:8000',
+        'http://127.0.0.1:8000',
     ]
 
-# Secure cookie settings - hardened for production
-CSRF_COOKIE_SECURE = not DEBUG  # Require HTTPS in production
-CSRF_COOKIE_SAMESITE = 'Lax'  # Prevent CSRF attacks while allowing some cross-origin
+# Security settings - Restored to baseline
+CSRF_COOKIE_HTTPONLY = False
+SESSION_COOKIE_HTTPONLY = False
 CSRF_COOKIE_NAME = 'csrftoken'
-CSRF_COOKIE_HTTPONLY = False  # Allow JavaScript to read CSRF token for SPA usage
 CSRF_USE_SESSIONS = False
-
-# Session settings - hardened for production
-SESSION_COOKIE_SAMESITE = 'Lax'  # Prevent CSRF attacks
-SESSION_COOKIE_HTTPONLY = True  # Prevent XSS attacks from stealing sessions
-SESSION_COOKIE_SECURE = not DEBUG  # Require HTTPS in production
-
+CSRF_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SAMESITE = 'Lax'
 # Security - HTTPS enforcement (only in production)
 SECURE_SSL_REDIRECT = not DEBUG  # Redirect all HTTP to HTTPS in production
 SECURE_HSTS_SECONDS = 31536000 if not DEBUG else 0  # 1 year HSTS in production
 SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG  # Include subdomains in HSTS
 SECURE_HSTS_PRELOAD = not DEBUG  # Allow browser HSTS preload
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')  # For reverse proxy setups
+
+# Security Headers
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
 
 # Email settings (for development)
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

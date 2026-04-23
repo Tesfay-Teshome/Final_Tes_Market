@@ -1,9 +1,9 @@
 import { store } from '@/store';
-import { 
-  setConversations, 
-  addMessage, 
-  setMessages, 
-  updateConversation, 
+import {
+  setConversations,
+  addMessage,
+  setMessages,
+  updateConversation,
   setTypingStatus,
   setOnlineStatus,
   updateMessageStatus,
@@ -119,49 +119,33 @@ class ChatService implements IChatService {
   public async fetchConversations(): Promise<void> {
     try {
       if (!this.isAuthenticated()) {
-        // Skip when unauthenticated to avoid 401 spam
         return;
       }
       const response = await messagingAPI.getConversations();
-      
-      // Ensure we have valid data
+
       if (!Array.isArray(response.data)) {
         console.error('Invalid conversations data format:', response.data);
         throw new Error('Invalid conversations data format received from server');
       }
-      
-      // Filter out any invalid conversations and ensure proper formatting
+
+      // Only filter out conversations with no ID — backend handles all other rules
       const validConversations = response.data.filter(conversation => {
-        // Must have an ID
         if (!conversation?.id) {
           console.warn('Skipping conversation with missing ID:', conversation);
           return false;
         }
-        
-        // Must have participants array with at least 1 participant
-        if (!Array.isArray(conversation.participants) || conversation.participants.length === 0) {
-          console.warn('Skipping conversation with invalid participants:', conversation.id);
-          return false;
-        }
-        
-        // For direct messages, must have exactly 2 participants
-        if (!conversation.is_group && conversation.participants.length !== 2) {
-          console.warn('Skipping direct message with invalid participant count:', conversation.id);
-          return false;
-        }
-        
         return true;
       });
-      
+
       console.log(`Fetched ${validConversations.length} valid conversations`);
       store.dispatch(setConversations(validConversations));
     } catch (error) {
       console.error('Failed to fetch conversations:', error);
-      
+
       // Don't throw the error to prevent the app from crashing
       // Just log it and dispatch an empty array to clear any stale data
       store.dispatch(setConversations([]));
-      
+
       // Show error toast to user
       const errorMessage = error instanceof Error ? error.message : 'Failed to load conversations';
       store.dispatch({
@@ -192,7 +176,7 @@ class ChatService implements IChatService {
     const state = store.getState() as RootState;
     const currentUser = state.auth.user;
     const tempId = `temp-${Date.now()}`;
-    
+
     if (!currentUser) {
       throw new Error('User not authenticated');
     }
@@ -221,7 +205,7 @@ class ChatService implements IChatService {
 
       // Send the message to the server
       const response = await messagingAPI.sendMessage(conversationId, content, recipientId || '');
-      
+
       // Create the updated message with server response
       const updatedMessage: Message = {
         ...response.data,
@@ -229,7 +213,7 @@ class ChatService implements IChatService {
         recipient_id: recipientId || response.data.recipient_id,
         temp_id: tempId, // Preserve the temp ID for mapping
       };
-      
+
       // Update the message in the store
       store.dispatch(updateMessageStatus({
         messageIds: [tempId],
@@ -261,7 +245,7 @@ class ChatService implements IChatService {
       return response.data;
     } catch (error) {
       console.error('Error sending message:', error);
-      
+
       // Update the message status to failed
       store.dispatch(updateMessageStatus({
         messageIds: [tempId],
@@ -269,7 +253,7 @@ class ChatService implements IChatService {
         // @ts-ignore - Using internal property for error
         _error: error instanceof Error ? error.message : 'Failed to send message'
       }));
-      
+
       throw error;
     }
   }
@@ -277,33 +261,33 @@ class ChatService implements IChatService {
   // Mark messages as read
   public async markMessagesAsRead(conversationId: string, messageIds: string[] = []): Promise<void> {
     if (!messageIds.length) return;
-    
+
     try {
       const state = store.getState() as RootState;
       const currentUserId = state.auth.user?.id;
-      
+
       if (!currentUserId) {
         throw new Error('User not authenticated');
       }
-      
+
       // Get conversation messages
       const conversationMessages = state.chat.messages[conversationId] || [];
-      
+
       // If no messageIds provided, find all unread messages in the conversation
-      const messagesToMark = messageIds.length > 0 
+      const messagesToMark = messageIds.length > 0
         ? conversationMessages.filter(msg => messageIds.includes(msg.id))
         : conversationMessages.filter(msg => !msg.is_read && msg.sender_id !== currentUserId);
-      
+
       if (messagesToMark.length === 0) return;
-      
+
       const messageIdsToUpdate = messagesToMark.map(msg => msg.id);
-      
+
       // Optimistically update the UI
-      store.dispatch(markAsRead({ 
-        conversationId, 
+      store.dispatch(markAsRead({
+        conversationId,
         messageIds: messageIdsToUpdate
       }));
-      
+
       // Update status to 'read' for all messages
       store.dispatch(updateMessageStatus({
         messageIds: messageIdsToUpdate,
@@ -311,11 +295,11 @@ class ChatService implements IChatService {
         // @ts-ignore - conversationId is used in the reducer
         conversationId
       }));
-      
+
       // Update the last message status in the conversation if needed
       const conversation = state.chat.conversations[conversationId];
       const lastMessageId = conversation?.last_message?.id;
-      
+
       if (lastMessageId && messageIdsToUpdate.includes(lastMessageId)) {
         store.dispatch(updateConversation({
           id: conversationId,
@@ -329,10 +313,10 @@ class ChatService implements IChatService {
           }
         }));
       }
-      
+
       // Notify the server - using markMessagesAsRead API
       await messagingAPI.markMessagesAsRead(conversationId, messageIdsToUpdate);
-      
+
     } catch (error) {
       console.error('Error marking messages as read:', error);
       // Revert optimistic update on error (if needed)
@@ -366,7 +350,7 @@ class ChatService implements IChatService {
   public startTyping(conversationId: string): void {
     const state = store.getState() as RootState;
     const currentUser = state.auth.user;
-    
+
     if (!currentUser) return;
 
     // Clear any existing timeout
@@ -391,7 +375,7 @@ class ChatService implements IChatService {
   public stopTyping(conversationId: string): void {
     const state = store.getState() as RootState;
     const currentUser = state.auth.user;
-    
+
     if (!currentUser) return;
 
     // Clear the typing timeout if it exists
@@ -415,7 +399,7 @@ class ChatService implements IChatService {
     try {
       const state = store.getState() as RootState;
       const currentUser = state.auth.user;
-      
+
       if (!currentUser) {
         throw new Error('User not authenticated');
       }
@@ -469,10 +453,10 @@ class ChatService implements IChatService {
     try {
       const response = await messagingAPI.getOrCreateConversation(participantId);
       const conversation = response.data;
-      
+
       // Add to store
       store.dispatch(addConversation(conversation));
-      
+
       return conversation;
     } catch (error) {
       console.error('Error getting or creating conversation:', error);

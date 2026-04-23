@@ -17,25 +17,17 @@ from .models import (
 )
 
 User = get_user_model()
-
 class UserSerializer(serializers.ModelSerializer):
-    status = serializers.SerializerMethodField(read_only=True)
-    
-    def get_status(self, obj):
-        if obj.is_verified:
-            return 'approved'
-        elif not obj.is_active:
-            return 'rejected'
-        return 'pending'
+    phone_number = serializers.CharField(source='phone', required=False, allow_blank=True)
     password = serializers.CharField(write_only=True, required=False, style={'input_type': 'password'})
     confirm_password = serializers.CharField(write_only=True, required=False, style={'input_type': 'password'})
     current_password = serializers.CharField(write_only=True, required=False, style={'input_type': 'password'})
     full_name = serializers.CharField(write_only=False, required=False, allow_blank=True)  # Allow blank on update
-    phone_number = serializers.CharField(source='phone', required=False, allow_blank=True)
     user_type = serializers.CharField(required=True)
     store_name = serializers.CharField(required=False, allow_blank=True)
     store_description = serializers.CharField(required=False, allow_blank=True)
     status = serializers.SerializerMethodField(read_only=True)
+    profile_image = serializers.SerializerMethodField(read_only=True)
     
     def create(self, validated_data):
         """Create a new user with properly hashed password"""
@@ -157,11 +149,14 @@ class UserSerializer(serializers.ModelSerializer):
         return instance
 
     def get_profile_image(self, obj):
-        if obj.profile_image:
-            request = self.context.get('request')
-            if request is not None:
-                return request.build_absolute_uri(obj.profile_image.url)
-            return obj.profile_image.url
+        try:
+            if obj.profile_image and hasattr(obj.profile_image, 'url'):
+                request = self.context.get('request')
+                if request is not None:
+                    return request.build_absolute_uri(obj.profile_image.url)
+                return obj.profile_image.url
+        except Exception:
+            pass
         return None
         
     class Meta:
@@ -220,39 +215,6 @@ class UserSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("Store name is required for vendors")
         return data
 
-    def create(self, validated_data):
-        # Hash the password
-        validated_data['password'] = make_password(validated_data.get('password'))
-
-        # Check if email already exists
-        email = validated_data.get('email')
-        if User.objects.filter(email=email).exists():
-            raise serializers.ValidationError({"email": "This email is already registered."})
-        
-        # Set username to email for consistency
-        validated_data['username'] = email
-
-        # Handle the full name
-        full_name = validated_data.pop('full_name', '')
-
-        # Remove confirm_password
-        validated_data.pop('confirm_password')
-
-        # Self-registered users: active but not verified (pending approval)
-        validated_data['is_active'] = True
-        validated_data['is_verified'] = False
-        print(f"📝 Public registration: {email} - Pending admin approval")
-
-        try:
-            user = User.objects.create(**validated_data)
-            # Set full name
-            user.full_name = full_name
-            user.save()
-            return user
-
-        except IntegrityError as e:
-            # This should not happen now, but just in case
-            raise serializers.ValidationError({"email": "This email is already registered."})
                 
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
@@ -613,6 +575,7 @@ class TransactionSerializer(serializers.ModelSerializer):
         read_only_fields = ('admin_approved', 'admin_note')
 
 class VendorEarningSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='vendor.id', read_only=True)
     order_number = serializers.CharField(source='order_item.order.id', read_only=True)
     product_name = serializers.CharField(source='order_item.product.name', read_only=True)
 
@@ -877,19 +840,22 @@ class ConversationListSerializer(serializers.ModelSerializer):
     unread_count = serializers.SerializerMethodField()
     is_online = serializers.SerializerMethodField()
     typing = serializers.SerializerMethodField()
+    participants = serializers.SerializerMethodField()
+    is_group = serializers.BooleanField(default=False)
 
     class Meta:
         model = Conversation
         fields = [
-            'id', 'other_participant', 'last_message', 'unread_count', 
+            'id', 'other_participant', 'participants', 'is_group', 'last_message', 'unread_count', 
             'created_at', 'updated_at', 'is_online', 'typing'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'participants', 'created_at', 'updated_at']
 
     def get_other_participant(self, obj):
         request = self.context.get('request')
         if request and hasattr(request, 'user'):
-            other_user = obj.get_other_participant(request.user)
+            # Get first participant that is NOT the current user
+            other_user = obj.participants.exclude(id=request.user.id).first()
             if other_user:
                 profile_image = None
                 if other_user.profile_image and hasattr(other_user.profile_image, 'url'):
@@ -941,7 +907,7 @@ class ConversationListSerializer(serializers.ModelSerializer):
     def get_is_online(self, obj):
         request = self.context.get('request')
         if request and hasattr(request, 'user'):
-            other_user = obj.get_other_participant(request.user)
+            other_user = obj.participants.exclude(id=request.user.id).first()
             if other_user:
                 return getattr(other_user, 'is_online', False)
         return False
@@ -950,16 +916,37 @@ class ConversationListSerializer(serializers.ModelSerializer):
         # This will be populated by the WebSocket consumer
         return False
 
+    def get_participants(self, obj):
+        request = self.context.get('request')
+        if not request or not hasattr(request, 'user'):
+            return []
+            
+        participants = []
+        for user in obj.participants.all():
+            profile_image = None
+            if user.profile_image and hasattr(user.profile_image, 'url'):
+                profile_image = request.build_absolute_uri(user.profile_image.url)
+                
+            participants.append({
+                'id': user.id,
+                'username': user.username,
+                'full_name': getattr(user, 'full_name', user.username),
+                'email': user.email,
+                'profile_image': profile_image,
+                'is_online': getattr(user, 'is_online', False),
+                'is_you': user == request.user
+            })
+        return participants
+
 
 class ConversationDetailSerializer(ConversationListSerializer):
     messages = serializers.SerializerMethodField()
-    participants = serializers.SerializerMethodField()
     can_reply = serializers.SerializerMethodField()
     is_muted = serializers.SerializerMethodField()
     
     class Meta(ConversationListSerializer.Meta):
         fields = ConversationListSerializer.Meta.fields + [
-            'messages', 'participants', 'can_reply', 'is_muted'
+            'messages', 'can_reply', 'is_muted'
         ]
     
     def get_messages(self, obj):
@@ -1009,28 +996,6 @@ class ConversationDetailSerializer(ConversationListSerializer):
                 context=self.context
             ).data
         }
-    
-    def get_participants(self, obj):
-        request = self.context.get('request')
-        if not request or not hasattr(request, 'user'):
-            return []
-            
-        participants = []
-        for user in obj.participants.all():
-            profile_image = None
-            if user.profile_image and hasattr(user.profile_image, 'url'):
-                profile_image = request.build_absolute_uri(user.profile_image.url)
-                
-            participants.append({
-                'id': user.id,
-                'username': user.username,
-                'full_name': getattr(user, 'full_name', user.username),
-                'email': user.email,
-                'profile_image': profile_image,
-                'is_online': getattr(user, 'is_online', False),
-                'is_you': user == request.user
-            })
-        return participants
     
     def get_can_reply(self, obj):
         # Add any business logic for reply permissions here

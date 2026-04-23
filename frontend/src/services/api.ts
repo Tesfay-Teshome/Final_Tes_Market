@@ -41,14 +41,6 @@ export const storefrontAPI = {
   }
 };
 
-// Store Review API
-export const storeReviewAPI = {
-  getReviews: (slug: string, params?: any) => api.get(`/api/public/stores/${slug}/reviews/`, { params }),
-  submitReview: (slug: string, data: any) => api.post(`/api/public/stores/${slug}/reviews/`, data),
-  approveReview: (reviewId: string | number) => api.post(`/api/vendor/store-reviews/${reviewId}/approve/`),
-  rejectReview: (reviewId: string | number) => api.post(`/api/vendor/store-reviews/${reviewId}/reject/`),
-};
-
 const sanitizeUrl = (value?: string) => value?.trim().replace(/\/$/, '') ?? '';
 const LOCALHOST_REGEX = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i;
 
@@ -199,6 +191,92 @@ const api = axios.create({
   },
   timeout: 30000, // 30 second timeout
 }) as CustomAxiosInstance;
+
+// Store Review API
+export const storeReviewAPI = {
+  getReviews: (slug: string, params?: { page?: number; page_size?: number }) =>
+    api.get(`/api/public/stores/${slug}/reviews/`, { params }),
+  submitReview: (slug: string, data: { rating: number; comment: string }) =>
+    api.post(`/api/public/stores/${slug}/reviews/`, data),
+  approveReview: (reviewId: string | number) =>
+    api.post(`/api/vendor/store-reviews/${reviewId}/approve/`),
+  rejectReview: (reviewId: string | number) =>
+    api.post(`/api/vendor/store-reviews/${reviewId}/reject/`),
+};
+
+// Cart API
+export const cartAPI = {
+  get: () => api.get('/api/cart/'),
+  addItem: (product_id: string | number, quantity: number = 1) =>
+    api.post('/api/cart-items/', { product_id, quantity }),
+  updateItem: (id: string | number, data: { quantity: number; selected_variant?: string }) =>
+    api.patch(`/api/cart-items/${id}/`, data),
+  removeItem: (id: string | number) =>
+    api.delete(`/api/cart-items/${id}/`),
+  clear: () => api.delete('/api/cart/clear/'),
+};
+
+// Admin/Universal API
+export const adminAPI = {
+  // User management
+  getUsers: (params?: any) => api.get('/api/users/', { params }),
+  updateUser: (id: string | number, data: any) => api.patch(`/api/users/${id}/`, data),
+  updateUserStatus: (id: string | number, is_active: boolean) =>
+    api.patch(`/api/users/${id}/update_status/`, { is_active }),
+  createUser: (data: FormData | any) => api.post('/api/users/', data),
+  deleteUser: (id: string | number) => api.delete(`/api/users/${id}/`),
+
+  // Orders
+  getOrders: (params?: any) => api.get('/api/orders/', { params }),
+  getBuyerOrders: () => api.get('/api/orders/buyer/'),
+  getRecentOrders: (params?: any) => api.get('/api/orders/', { params: { ...params, limit: 5 } }),
+  updateOrderStatus: (id: string | number, status: string, notes?: string) =>
+    api.patch(`/api/orders/${id}/`, { status, notes }),
+  approveOrder: (id: string | number, notes?: string) =>
+    api.patch(`/api/orders/${id}/`, { status: 'approved', notes }),
+  rejectOrder: (id: string | number, notes?: string) =>
+    api.patch(`/api/orders/${id}/`, { status: 'rejected', notes }),
+
+  // Dashboard & Metrics
+  getDashboard: () => api.get('/api/administrator/dashboard/'),
+  getMetrics: (params?: any) => api.get('/api/administrator/dashboard/metrics/', { params }),
+  getHealth: () => api.get('/api/administrator/dashboard/health/'),
+
+  // Testimonials
+  getTestimonials: (params?: any) => api.get('/api/testimonials/', { params }),
+  approveTestimonial: (id: string | number) => api.post(`/api/testimonials/${id}/approve/`),
+  rejectTestimonial: (id: string | number) => api.post(`/api/testimonials/${id}/reject/`),
+
+  // Vendors
+  getVendors: (params?: any) => api.get('/api/administrator/vendors/', { params }),
+  approveVendor: (id: string | number) => api.post(`/api/administrator/vendors/${id}/approve/`),
+  rejectVendor: (id: string | number, reason?: string) => api.post(`/api/administrator/vendors/${id}/reject/`, { reason }),
+
+  // Product lifecycle
+  getProducts: (params?: any) => api.get('/api/products/', { params }),
+  approveProduct: (id: string | number) => api.patch(`/api/products/${id}/`, { status: 'approved' }),
+  rejectProduct: (id: string | number, reason?: string) => api.patch(`/api/products/${id}/`, { status: 'rejected', notes: reason }),
+  deleteProduct: (id: string | number) => api.delete(`/api/products/${id}/`),
+
+  // Categories
+  getCategories: () => api.get('/api/categories/'),
+
+  // Payouts
+  getPayouts: (params?: any) => api.get('/api/admin/payouts/', { params }),
+  getPayoutRequests: (statusFilter?: string) => api.get('/api/admin/payouts/', { params: { status: statusFilter } }),
+  approvePayout: (id: string | number, data?: any) => api.post(`/api/admin/payouts/${id}/approve-or-reject/`, { ...data, action: 'approve' }),
+  rejectPayout: (id: string | number, data?: any) => api.post(`/api/admin/payouts/${id}/approve-or-reject/`, { ...data, action: 'reject' }),
+  processPayout: (id: string | number, data?: any) => api.post(`/api/admin/payouts/${id}/process/`, data),
+
+  // Vendor Specific (Admin view)
+  getVendorEarnings: (params?: any) => api.get('/api/vendor/earnings/', { params }),
+  processVendorPayouts: (earningIds: (string | number)[], action: string) => api.post('/api/vendor/payouts/process/', { earning_ids: earningIds, action }),
+
+  // Transactions
+  getTransactions: (params?: any) => api.get('/api/transactions/', { params }),
+  approvePayment: (id: string | number) => api.post(`/api/transactions/${id}/approve_payment/`),
+  rejectPayment: (id: string | number, reason: string) => api.post(`/api/transactions/${id}/reject_payment/`, { reason }),
+};
 
 export const httpClient = api;
 
@@ -496,23 +574,7 @@ export const categoriesAPI = {
     api.delete(`/api/categories/${id}/`),
 };
 
-// Cart API
-export const cartAPI = {
-  get: () =>
-    api.get('/api/cart/'),
-
-  addItem: (productId: string, quantity: number = 1) =>
-    api.post('/api/cart-items/', { product_id: productId, quantity }),
-
-  updateItem: (id: string, data: any) =>
-    api.patch(`/api/cart-items/${id}/`, data), // Use new cart-items endpoint
-
-  removeItem: (id: string) =>
-    api.delete(`/api/cart-items/${id}/`), // Use new cart-items endpoint
-
-  clear: () =>
-    api.delete('/api/cart/clear/'), // Clear all items from cart
-};
+// Redundant cartAPI removed
 
 // Orders API
 export const ordersAPI = {
@@ -655,206 +717,7 @@ export const vendorAPI = {
     api.patch('/api/vendor/notification-preferences/', preferences)
 };
 
-// Administrator API
-export const adminAPI = {
-  getDashboard: () =>
-    api.get('/api/administrator/dashboard/'),
 
-  getMetrics: (params?: { range?: string; group_by?: 'day' | 'week' | 'month' }) =>
-    api.get('/api/administrator/dashboard/metrics/', { params }),
-
-  getRecentOrders: (params?: { limit?: number }) =>
-    api.get('/api/administrator/dashboard/recent_orders/', { params }),
-
-  getHealth: () =>
-    api.get('/api/administrator/dashboard/health/'),
-
-  getUsers: (params?: any) =>
-    api.get('/api/users/', { params }),
-
-  updateUser: (id: string, data: any) =>
-    api.patch(`/api/users/${id}/`, data),
-
-  deleteUser: (id: string) =>
-    api.delete(`/api/users/${id}/`),
-
-  getVendors: (params?: { status?: string; search?: string }) => {
-    const queryParams = new URLSearchParams();
-    if (params?.status) queryParams.append('status', params.status);
-    if (params?.search) queryParams.append('search', params.search);
-    const queryString = queryParams.toString();
-    return api.get(`/api/administrator/vendors/${queryString ? `?${queryString}` : ''}`);
-  },
-  approveVendor: (id: string) => api.post(`/api/administrator/vendors/${id}/approve/`),
-  rejectVendor: (id: string, reason: string) => api.post(`/api/administrator/vendors/${id}/reject/`, { reason }),
-  getVendorEarnings: (p0: { search: string; status: string; }) => api.get('/api/vendor/earnings/'),
-  processVendorPayouts: (data: any, action: string) => api.post('/api/vendor/earnings/process_payouts/', data),
-
-  // Payout Management
-  getPayoutRequests: (status?: string) => {
-    const params = status && status !== 'all' ? { status } : {};
-    return api.get('/api/admin/payouts/', { params });
-  },
-  // Alias for payouts list used by admin TransactionManagement
-  getPayouts: (params?: any) =>
-    api.get('/api/admin/payouts/', { params }),
-  approveOrRejectPayout: (payoutId: string, data: { action: 'approve' | 'reject'; admin_notes?: string }) =>
-    api.post(`/api/admin/payouts/${payoutId}/approve-or-reject/`, data),
-  approvePayout: (payoutId: string, data?: { admin_notes?: string }) =>
-    api.post(`/api/admin/payouts/${payoutId}/approve-or-reject/`, { action: 'approve', ...data }),
-  rejectPayout: (payoutId: string, data: { admin_notes: string }) =>
-    api.post(`/api/admin/payouts/${payoutId}/approve-or-reject/`, { action: 'reject', ...data }),
-  processPayout: (payoutId: string, data: { payout_reference: string; payout_date?: string; admin_notes?: string }) =>
-    api.post(`/api/admin/payouts/${payoutId}/process/`, data),
-
-  // Transaction Management
-  getTransactions: (params?: any) => api.get('/api/transactions/', { params }),
-  approvePayment: (id: string) => api.post(`/api/transactions/${id}/approve_payment/`),
-  rejectPayment: (id: string, reason: string) => api.post(`/api/transactions/${id}/reject_payment/`, { reason }),
-
-  // Testimonial Management
-  getTestimonials: (params?: any) => api.get('/api/testimonials/', { params }),
-  approveTestimonial: (id: string) => api.post(`/api/testimonials/${id}/approve/`),
-  rejectTestimonial: (id: string) => api.post(`/api/testimonials/${id}/reject/`),
-
-  // Buyer Management
-  getBuyerOrders: (params?: any) => api.get('/api/buyer/orders/', { params }),
-  getBuyerWishlist: (params?: any) => api.get('/api/buyer/wishlist/', { params }),
-  getBuyerCart: () => api.get('/api/buyer/cart/'),
-
-  getProducts: (params?: any) =>
-    api.get('/api/products/', { params }),
-
-  approveProduct: (id: string) =>
-    api.post(`/api/products/${id}/approve/`),
-
-  rejectProduct: (id: string, reason: string) =>
-    api.post(`/api/products/${id}/reject/`, { reason }),
-
-  getCategories: () =>
-    api.get('/api/categories/'),
-
-  createCategory: (data: FormData) =>
-    api.post('/api/categories/', data, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    }),
-
-  updateCategory: (id: string, data: FormData) =>
-    api.patch(`/api/categories/${id}/`, data, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    }),
-
-  deleteCategory: (id: string) =>
-    api.delete(`/api/categories/${id}/`),
-
-  approveTransaction: (id: string, note?: string) =>
-    api.post(`/api/transactions/${id}/approve_payment/`, { admin_note: note }),
-
-  rejectTransaction: (id: string, reason: string) =>
-    api.post(`/api/transactions/${id}/reject_payment/`, { reason }),
-
-  getNotifications: () =>
-    api.get('/api/admin/notifications/'),
-
-  markNotificationAsRead: (id: string) =>
-    api.patch(`/api/admin/notifications/${id}/read/`),
-
-  getMessages: () =>
-    api.get('/api/admin/messages/'),
-
-  sendMessage: (data: any) =>
-    api.post('/api/admin/messages/', data),
-
-  getSystemSettings: () =>
-    api.get('/api/admin/settings/'),
-
-  updateSystemSettings: (data: any) =>
-    api.patch('/api/admin/settings/', data),
-
-  // Order Management
-  getOrders: (params?: any) =>
-    api.get('/api/admin/orders/', { params }),
-
-  getOrder: (id: string) =>
-    api.get(`/api/admin/orders/${id}/`),
-
-  approveOrder: (orderId: string, notes?: string) =>
-    api.patch(`/api/admin/orders/${orderId}/`, {
-      action: 'approve',
-      admin_notes: notes
-    }),
-
-  rejectOrder: (orderId: string, notes?: string) =>
-    api.patch(`/api/admin/orders/${orderId}/`, {
-      action: 'reject',
-      admin_notes: notes
-    }),
-
-  updateOrderStatus: (orderId: string, status: string, notes?: string) =>
-    api.patch(`/api/admin/orders/${orderId}/`, {
-      action: 'update_status',
-      status: status,
-      admin_notes: notes
-    }),
-
-  getAuditLogs: (params?: any) =>
-    api.get('/api/admin/audit-logs/', { params }),
-
-  updateUserStatus: async (userId: string, isActive: boolean) => {
-    try {
-      const response = await api.patch(`/api/users/${userId}/update_status/`, { is_active: isActive });
-      return response.data;
-    } catch (error) {
-      console.error('Error updating user status:', error);
-      throw error;
-    }
-  },
-
-  createUser: async (data: FormData) => {
-    try {
-      const response = await api.post('/api/users/', data, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          'X-Requested-With': 'XMLHttpRequest',
-        },
-        withCredentials: true,
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error creating user:', error);
-      throw error;
-    }
-  },
-
-  deleteProduct: async (id: string) => {
-    try {
-      // Use the standard products endpoint instead of admin-specific one
-      const response = await api.delete(`/api/products/${id}/`);
-      return response.data;
-    } catch (error: any) {
-      console.error('API Error deleting product:', {
-        error,
-        response: error.response,
-        status: error.response?.status,
-        data: error.response?.data,
-      });
-
-      // Create a new error with more details
-      const errorMessage = error.response?.data?.detail ||
-        error.response?.data?.message ||
-        'Failed to delete product';
-      const apiError = new Error(errorMessage);
-
-      // Attach the response to the error object
-      (apiError as any).response = error.response;
-      throw apiError;
-    }
-  },
-};
 
 // Messaging API
 export const messagingAPI = {

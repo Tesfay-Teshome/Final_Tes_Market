@@ -45,8 +45,39 @@ logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
-@method_decorator(ratelimit(key='ip', rate='3/h', method='POST'), name='create')
+
+class LoginView(generics.GenericAPIView):
+    """Login endpoint - accepts email + password, returns JWT tokens and user data."""
+    serializer_class = LoginSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data, context={'request': request})
+        try:
+            serializer.is_valid(raise_exception=True)
+        except Exception as e:
+            logger.warning(f"Login failed from IP: {request.META.get('REMOTE_ADDR')}: {e}")
+            return Response({'detail': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        user = serializer.validated_data['user']
+
+        # Block inactive users
+        if not user.is_active:
+            return Response({'detail': 'Account is disabled. Please contact support.'}, status=status.HTTP_403_FORBIDDEN)
+
+        refresh = RefreshToken.for_user(user)
+        user_serializer = UserSerializer(user, context={'request': request})
+
+        logger.info(f"Login successful for user {user.email} from IP: {request.META.get('REMOTE_ADDR')}")
+        return Response({
+            'user': user_serializer.data,
+            'access_token': str(refresh.access_token),
+            'refresh_token': str(refresh),
+        }, status=status.HTTP_200_OK)
+
+
 class RegisterView(generics.CreateAPIView):
+
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [permissions.AllowAny]
@@ -200,7 +231,6 @@ def csrf_token(request):
 # ---- Stripe Payments ----
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-@ratelimit(key='user', rate='10/m', method='POST')
 def create_payment_intent(request):
     """Create a Stripe PaymentIntent for a given amount or current cart total.
 
@@ -485,7 +515,6 @@ def admin_order_management(request, order_id=None):
             return Response({'error': 'Invalid action'}, status=status.HTTP_400_BAD_REQUEST)
 
 @method_decorator(csrf_exempt, name='dispatch')
-@method_decorator(ratelimit(key='ip', rate='5/m', method='POST'), name='post')
 class LoginView(generics.GenericAPIView):
     serializer_class = LoginSerializer 
     permission_classes = [permissions.AllowAny]
@@ -2392,8 +2421,8 @@ class UserViewSet(viewsets.ModelViewSet):
             
             # Get avatar URL if exists
             avatar_url = None
-            if vendor.avatar:
-                avatar_url = request.build_absolute_uri(vendor.avatar.url)
+            if vendor.profile_image:
+                avatar_url = request.build_absolute_uri(vendor.profile_image.url)
             
             vendor_data.append({
                 'id': vendor.id,
@@ -2437,13 +2466,14 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['patch'])
     def update_status(self, request, pk=None):
         """Update user's active status"""
-        if not request.user.is_superuser and request.user.user_type != 'administrator':
+        if not getattr(request.user, 'is_superuser', False) and getattr(request.user, 'user_type', '') != 'administrator':
             return Response(
                 {'detail': 'You do not have permission to perform this action'},
                 status=status.HTTP_403_FORBIDDEN
             )
             
         try:
+
             user = self.get_object()
             is_active = request.data.get('is_active')
             
@@ -2569,29 +2599,54 @@ class NotificationViewSet(viewsets.ModelViewSet):
         notification.is_read = True
         notification.save()
         
-        # Create notification for admin about vendor confirmation
+        # Handle specific logic based on notification type
+        if notification.notification_type == 'store_review' and notification.related_id:
+            from .models import StoreReview
+            try:
+                StoreReview.objects.filter(id=notification.related_id, vendor=request.user).update(status='approved')
+                
+                # Also notify admins about this approval
+                admin_users = User.objects.filter(user_type='administrator')
+                for admin in admin_users:
+                    Notification.objects.create(
+                        user=admin,
+                        title='Storefront Review Approved',
+                        message=f'Vendor {request.user.username} has approved a storefront review via notification confirmation.',
+                        notification_type='system',
+                        related_id=str(notification.related_id)
+                    )
+                return Response({
+                    'status': 'notification confirmed',
+                    'message': 'Review approved and administrator notified',
+                    'confirmed_at': notification.confirmed_at
+                })
+            except Exception as e:
+                print(f'Error updating review status: {e}')
+        
+        # Create notification for admin about vendor confirmation (Legacy Order logic)
         try:
             # Get the order related to this notification
             order_id = notification.related_id
-            order = Order.objects.get(id=order_id)
-            
-            # Get all admin users
-            admin_users = User.objects.filter(user_type='administrator')
-            
-            # Create notification for each admin
-            for admin in admin_users:
-                Notification.objects.create(
-                    user=admin,
-                    title='Vendor Confirmed Shipping Notification',
-                    message=f'Vendor {request.user.username} has confirmed they received and will process the shipping request for Order #{order_id}. The vendor acknowledges they will prepare and ship this order.',
-                    notification_type='order',
-                    related_id=str(order_id),
-                    requires_confirmation=False,
-                )
-            
-            # Mark that admin was notified
-            notification.admin_notified_of_confirmation = True
-            notification.save()
+            if order_id:
+                order = Order.objects.filter(id=order_id).first()
+                if order:
+                    # Get all admin users
+                    admin_users = User.objects.filter(user_type='administrator')
+                    
+                    # Create notification for each admin
+                    for admin in admin_users:
+                        Notification.objects.create(
+                            user=admin,
+                            title='Vendor Confirmed Shipping Notification',
+                            message=f'Vendor {request.user.username} has confirmed they received and will process the shipping request for Order #{order_id}.',
+                            notification_type='order',
+                            related_id=str(order_id),
+                            requires_confirmation=False,
+                        )
+                    
+                    # Mark that admin was notified
+                    notification.admin_notified_of_confirmation = True
+                    notification.save()
             
         except Order.DoesNotExist:
             pass
@@ -2655,16 +2710,10 @@ class ConversationViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         # Get conversations where the current user is a participant
-        conversations = Conversation.objects.filter(participants=self.request.user)
-        
-        # Only include direct messages (exactly 2 participants)
-        conversations = conversations.annotate(
-            participant_count=Count('participants')
-        ).filter(
-            participant_count=2
-        ).distinct()
-        
-        return conversations.order_by('-updated_at')
+        return Conversation.objects.filter(
+            participants=self.request.user,
+            is_active=True
+        ).distinct().order_by('-updated_at')
     
     def create(self, request, *args, **kwargs):
         participant_ids = request.data.get('participants', [])

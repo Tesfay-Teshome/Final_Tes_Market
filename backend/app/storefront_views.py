@@ -13,6 +13,7 @@ from .serializers import ProductSerializer, StoreReviewSerializer
 
 
 class InlineVendorStoreSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='vendor.id', read_only=True)
     vendor_id = serializers.IntegerField(source='vendor.id', read_only=True)
     vendor_email = serializers.EmailField(source='vendor.email', read_only=True)
 
@@ -216,18 +217,17 @@ def public_store_reviews(request, slug: str):
 @permission_classes([IsAuthenticated])
 def vendor_approve_review(request, review_id: int):
     """Approve a pending store review"""
-    review = StoreReview.objects.filter(id=review_id, vendor=request.user).first()
-    if not review:
+    # Use update for atomicity and to ensure it hits the DB directly
+    updated_count = StoreReview.objects.filter(id=review_id, vendor=request.user).update(status='approved')
+    
+    if updated_count == 0:
         return Response({'detail': 'Review not found or permission denied'}, status=status.HTTP_404_NOT_FOUND)
         
-    review.status = 'approved'
-    review.save()
-    
     # mark notification as confirmed
     Notification.objects.filter(
         user=request.user, 
         notification_type='store_review', 
-        related_id=str(review.id)
+        related_id=str(review_id)
     ).update(confirmed_by_vendor=True, confirmed_at=timezone.now(), is_read=True)
     
     from django.contrib.auth import get_user_model
@@ -239,7 +239,7 @@ def vendor_approve_review(request, review_id: int):
             title='Storefront Review Approved',
             message=f'Vendor {request.user.username} has approved a storefront review.',
             notification_type='system',
-            related_id=str(review.id)
+            related_id=str(review_id)
         )
     
     return Response({'detail': 'Review approved successfully'})
@@ -248,11 +248,19 @@ def vendor_approve_review(request, review_id: int):
 @permission_classes([IsAuthenticated])
 def vendor_reject_review(request, review_id: int):
     """Reject a pending store review"""
-    review = StoreReview.objects.filter(id=review_id, vendor=request.user).first()
-    if not review:
+    updated_count = StoreReview.objects.filter(id=review_id, vendor=request.user).update(status='rejected')
+    
+    if updated_count == 0:
         return Response({'detail': 'Review not found or permission denied'}, status=status.HTTP_404_NOT_FOUND)
         
-    review.status = 'rejected'
+    # mark notification as confirmed
+    Notification.objects.filter(
+        user=request.user, 
+        notification_type='store_review', 
+        related_id=str(review_id)
+    ).update(confirmed_by_vendor=True, confirmed_at=timezone.now(), is_read=True)
+    
+    return Response({'detail': 'Review rejected successfully'})
     review.save()
     
     # mark notification as confirmed

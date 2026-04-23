@@ -113,8 +113,8 @@ const Navbar = () => {
           const { messagingAPI } = await import('@/services/api');
           const conversations = await messagingAPI.getConversations();
           const conversationsData = Array.isArray(conversations.data) ? conversations.data : [];
-          const unreadCount = conversationsData.filter((conv: any) => conv.unread_count > 0).length || 0;
-          setUnreadMessages(unreadCount);
+          const unreadCount = conversationsData.reduce((sum: number, conv: any) => sum + (conv?.unread_count || 0), 0);
+          setUnreadMessages(unreadCount || 0);
         } catch (e) {
           console.error('Error fetching unread messages:', e);
           setUnreadMessages(0);
@@ -129,6 +129,12 @@ const Navbar = () => {
       fetchNotifications().catch(console.error);
       fetchUnreadMessages().catch(console.error);
 
+      // Listen for instant updates from MessagesPage
+      const handleMessagesRead = () => {
+        fetchUnreadMessages().catch(console.error);
+      };
+      window.addEventListener('messagesRead', handleMessagesRead);
+
       // Set up intervals for periodic updates (every 30 seconds)
       notificationInterval = setInterval(() => {
         fetchNotifications().catch(console.error);
@@ -136,6 +142,12 @@ const Navbar = () => {
       messageInterval = setInterval(() => {
         fetchUnreadMessages().catch(console.error);
       }, 30000);
+
+      return () => {
+        if (notificationInterval) clearInterval(notificationInterval);
+        if (messageInterval) clearInterval(messageInterval);
+        window.removeEventListener('messagesRead', handleMessagesRead);
+      };
     }
 
     return () => {

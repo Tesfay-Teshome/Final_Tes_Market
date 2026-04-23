@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { storefrontAPI, cartAPI, resolveMediaUrl, storeReviewAPI } from '@/services/api';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { storefrontAPI, cartAPI, resolveMediaUrl, storeReviewAPI, messagingAPI } from '@/services/api';
+import chatService from '@/services/chatService';
 import {
   Search,
   Star,
@@ -12,7 +13,6 @@ import {
   Mail,
   MapPin,
   Package,
-  ArrowRight,
   X,
   Globe,
   Instagram,
@@ -25,7 +25,10 @@ import {
   Send,
   RefreshCw,
   ShieldCheck,
-  Award
+  Award,
+  ChevronLeft,
+  ChevronRight,
+  ArrowRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '@/components/ui/use-toast';
@@ -65,7 +68,11 @@ const StorefrontPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [storeReviews, setStoreReviews] = useState<any[]>([]);
   const [showContactModal, setShowContactModal] = useState(false);
+  const [reviewIndex, setReviewIndex] = useState(0);
+  const [productIndex, setProductIndex] = useState(0);
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
   const { toast } = useToast();
+  const navigate = useNavigate();
   const productsSectionRef = useRef<HTMLDivElement>(null);
   const currentUser = useSelector((state: RootState) => state.auth.user);
 
@@ -74,6 +81,45 @@ const StorefrontPage: React.FC = () => {
   const [reviewHover, setReviewHover] = useState(0);
   const [reviewText, setReviewText] = useState('');
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
+  const [isChatLoading, setIsChatLoading] = useState(false);
+
+  const handleContactVendorChat = async () => {
+    if (!currentUser) {
+      toast({
+        title: "Authentication Required",
+        description: "Please login to chat with the vendor.",
+      });
+      navigate('/login', { state: { from: `/store/${slug}` } });
+      return;
+    }
+
+    if (!vendor?.id) {
+      toast({
+        title: "Error",
+        description: "Vendor information is missing.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (isChatLoading) return;
+    setIsChatLoading(true);
+    try {
+      const conv = await chatService.getOrCreateConversation(String(vendor.id));
+      if (conv?.id) {
+        navigate(`/messages/${conv.id}`);
+      }
+    } catch (error) {
+      console.error("Chat error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to start chat session.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsChatLoading(false);
+    }
+  };
 
   const resolveProductImage = (p: any): string | null => {
     const candidate = p?.images?.[0]?.image_url || p?.images?.[0]?.image || p?.image_url || p?.thumbnail || p?.image || null;
@@ -132,6 +178,12 @@ const StorefrontPage: React.FC = () => {
   const { getHeadingSize, roundingClass } = themeVars;
 
   useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
     if (!slug) return;
     setLoading(true);
     Promise.all([
@@ -151,7 +203,18 @@ const StorefrontPage: React.FC = () => {
         setStoreReviews(reviewsData);
 
         // Prioritize vendor from store object, fallback to first product's vendor
-        const v = storeRes.data?.vendor || s?.vendor || p[0]?.vendor;
+        let v = storeRes.data?.vendor || s?.vendor || p[0]?.vendor;
+
+        // Logical consolidation: If store object is present but lacks vendor property, 
+        // the store's 'id' is now the vendor ID due to our serializer alias.
+        if (!v && s && (s.vendor_id || s.id)) {
+          v = {
+            id: s.id,
+            email: s.vendor_email || s.email,
+            full_name: s.display_name || s.full_name,
+            avatar_url: s.logo_url || s.avatar_url
+          };
+        }
         setVendor(v);
       })
       .catch((e) => setError(e?.response?.data?.detail || 'Failed to load store'))
@@ -196,37 +259,31 @@ const StorefrontPage: React.FC = () => {
       <div className="h-[80px] w-full relative z-10" />
 
       {/* 2. TOP UTILITY HEADER - Sticky below Navbar */}
-      <div className="w-full bg-white/[0.02] backdrop-blur-2xl border-b border-white/5 py-3 px-6 sticky top-[80px] z-40 text-white transition-all duration-500 shadow-2xl">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-5 text-xs font-bold uppercase tracking-widest text-white/40">
-            <div className="flex items-center gap-2">
-              <Store className="w-3 h-3 text-[var(--store-accent)]" />
-              <span className="text-white/60">{store?.display_name || (store?.slug ? store.slug : slug)}</span>
+      <div className="w-full bg-[#03060a]/80 backdrop-blur-xl border-b border-white/5 py-4 px-6 md:px-12 sticky top-[80px] z-40 text-white shadow-2xl">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-6">
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2.5">
+              <Store className="w-4 h-4 text-[var(--store-accent)]" />
+              <span className="text-xs font-bold uppercase tracking-widest text-white/80">{store?.display_name || slug}</span>
             </div>
-            <div className="w-px h-3 bg-white/10" />
-            <div className="flex items-center gap-2">
-              <Globe className="w-3 h-3" />
+            <div className="hidden md:block w-px h-4 bg-white/10" />
+            <div className="hidden md:flex items-center gap-2.5 text-xs font-bold uppercase tracking-widest text-white/40">
+              <Globe className="w-4 h-4" />
               <span>{store?.socials?.shipsTo || 'Ships Worldwide'}</span>
             </div>
           </div>
+
           <div className="flex items-center gap-6">
-            <div className="flex gap-4">
-              {store?.socials?.facebook && <a href={store.socials.facebook} target="_blank" rel="noreferrer"><Facebook className="w-4 h-4 opacity-40 hover:opacity-100 cursor-pointer transition-opacity" /></a>}
-              {store?.socials?.twitter && <a href={store.socials.twitter} target="_blank" rel="noreferrer"><Twitter className="w-4 h-4 opacity-40 hover:opacity-100 cursor-pointer transition-opacity" /></a>}
-              {store?.socials?.instagram && <a href={store.socials.instagram} target="_blank" rel="noreferrer"><Instagram className="w-4 h-4 opacity-40 hover:opacity-100 cursor-pointer transition-opacity" /></a>}
-              {!store?.socials?.facebook && !store?.socials?.twitter && !store?.socials?.instagram && (
-                <>
-                  <Facebook className="w-4 h-4 opacity-20 cursor-default" />
-                  <Twitter className="w-4 h-4 opacity-20 cursor-default" />
-                  <Instagram className="w-4 h-4 opacity-20 cursor-default" />
-                </>
-              )}
+            <div className="hidden sm:flex items-center gap-4">
+              {store?.socials?.facebook && <a href={store.socials.facebook} target="_blank" rel="noreferrer" className="opacity-40 hover:opacity-100 transition-opacity"><Facebook className="w-4 h-4" /></a>}
+              {store?.socials?.twitter && <a href={store.socials.twitter} target="_blank" rel="noreferrer" className="opacity-40 hover:opacity-100 transition-opacity"><Twitter className="w-4 h-4" /></a>}
+              {store?.socials?.instagram && <a href={store.socials.instagram} target="_blank" rel="noreferrer" className="opacity-40 hover:opacity-100 transition-opacity"><Instagram className="w-4 h-4" /></a>}
             </div>
             <button
               onClick={() => setShowContactModal(true)}
-              className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest bg-white/5 px-4 py-1.5 rounded-full hover:bg-[var(--store-primary)] hover:text-black transition-all border border-white/10"
+              className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] bg-white/5 px-5 py-2 rounded-full hover:bg-[var(--store-primary)] hover:text-black transition-all border border-white/10"
             >
-              <MessageCircle className="w-3 h-3" />
+              <MessageCircle className="w-3.5 h-3.5" />
               Contact
             </button>
           </div>
@@ -284,7 +341,7 @@ const StorefrontPage: React.FC = () => {
 
             {/* Quick Stats (Real Data Only) */}
             <div className="max-w-7xl mx-auto px-6 lg:px-12 mb-16">
-              <div className="bg-white/[0.02] backdrop-blur-3xl border border-white/10 rounded-3xl p-6 md:p-10 grid grid-cols-1 md:grid-cols-3 gap-8 shadow-2xl">
+              <div className="bg-white/[0.02] backdrop-blur-3xl border border-white/10 rounded-3xl p-4 sm:p-10 grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 shadow-2xl">
                 <div className="flex items-center gap-5 p-4 rounded-2xl hover:bg-white/[0.03] transition-all">
                   <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center shrink-0">
                     <ShoppingBag className="w-5 h-5 text-[var(--store-accent)]" />
@@ -330,10 +387,10 @@ const StorefrontPage: React.FC = () => {
         )}
 
         {/* CATALOG SECTION */}
-        <div ref={productsSectionRef} className="max-w-7xl mx-auto px-6 lg:px-12 pb-8">
-          <div className="flex items-center justify-between mb-16">
-            <div className="flex items-center gap-6">
-              <div className="w-1.5 h-12 bg-[var(--store-primary)]" />
+        <div ref={productsSectionRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 pb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-16">
+            <div className="flex items-center gap-4 sm:gap-6">
+              <div className="w-1.5 h-10 sm:h-12 bg-[var(--store-primary)]" />
               <h2
                 className={`${botanicalSerif} ${getHeadingSize('h2')} font-medium text-white`}
                 style={{ fontFamily: `var(--store-heading-font), serif` }}
@@ -341,112 +398,138 @@ const StorefrontPage: React.FC = () => {
                 Featured Products
               </h2>
             </div>
-            <div className="px-8 py-3 bg-white/5 border border-white/10 rounded-xl text-xs font-bold uppercase tracking-widest flex items-center gap-4 cursor-pointer hover:bg-white/10 transition-all text-white/80 hover:text-white">
-              View All Products
-              <ArrowRight className="w-4 h-4 text-[var(--store-accent)]" />
+            <div className="flex items-center justify-between sm:justify-end gap-4">
+              {/* Product Carousel Controls */}
+              {products.length > (windowWidth < 768 ? 1 : 4) && (
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setProductIndex(prev => Math.max(0, prev - 1))}
+                    disabled={productIndex === 0}
+                    className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 disabled:opacity-20 transition-all"
+                  >
+                    <ChevronLeft className="w-5 h-5 text-white" />
+                  </button>
+                  <button
+                    onClick={() => setProductIndex(prev => Math.min(products.length - (windowWidth < 640 ? 1 : windowWidth < 1024 ? 2 : 4), prev + 1))}
+                    disabled={productIndex >= products.length - (windowWidth < 640 ? 1 : windowWidth < 1024 ? 2 : 4)}
+                    className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 disabled:opacity-20 transition-all"
+                  >
+                    <ChevronRight className="w-5 h-5 text-white" />
+                  </button>
+                </div>
+              )}
+              <Link
+                to="/"
+                className="px-6 sm:px-8 py-3 bg-white/5 border border-white/10 rounded-xl text-[10px] sm:text-xs font-bold uppercase tracking-widest flex items-center gap-4 cursor-pointer hover:bg-white/10 transition-all text-white/80 hover:text-white"
+              >
+                View All
+                <ArrowRight className="w-4 h-4 text-[var(--store-accent)]" />
+              </Link>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
-            {products.map((product, i) => (
-              <motion.div
-                key={product.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1 }}
-                className="overflow-hidden group shadow-2xl border border-white/5 flex flex-col h-full hover:shadow-[0_45px_90px_-20px_rgba(0,0,0,0.6)] hover:border-[var(--store-primary)]/30 transition-all duration-700 relative"
-                style={{
-                  backgroundColor: 'rgba(255,255,255,0.01)',
-                  borderRadius: roundingClass === 'rounded-full' ? '2.5rem' : roundingClass === 'rounded-2xl' ? '1.5rem' : '0',
-                  boxShadow: 'inset 0 1px 1px 0 rgba(255,255,255,0.05)'
-                }}
-              >
-                <div className="relative aspect-[4/3] overflow-hidden bg-white/[0.02]">
-                  <img
-                    src={resolveProductImage(product) || 'https://images.unsplash.com/photo-1591348122449-02525d743a1a?w=600&h=800&q=80'}
-                    className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
-                  />
-                  {i % 4 === 0 && <span className="absolute top-6 left-6 bg-rose-500 text-white text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-widest shadow-lg">Sale</span>}
-                  {i % 4 === 3 && <span className="absolute top-6 left-6 bg-purple-600 text-white text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-widest shadow-lg">Hot</span>}
-                  <button className="absolute top-6 right-6 p-4 bg-white/90 backdrop-blur-md rounded-2xl opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all shadow-xl hover:scale-110 active:scale-95">
-                    <Heart className="w-5 h-5 text-gray-400 hover:text-rose-500 transition-colors" />
-                  </button>
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
-                <div className="p-5 md:p-8 flex-1 flex flex-col">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="text-xs font-black text-[var(--store-primary)] uppercase tracking-[0.25em] opacity-100">Handmade Quality</div>
-                    <div className="flex items-center gap-2 opacity-30 group-hover:opacity-100 transition-all duration-500">
-                      <CheckCircle className="w-4 h-4 text-[var(--store-primary)]" />
-                      <span className="text-xs font-black uppercase text-white tracking-widest">Verified</span>
-                    </div>
-                  </div>
-
-                  <h3 className={`${botanicalSerif} text-white/95 text-2xl font-black mb-4 line-clamp-2 leading-[1.15] group-hover:text-[var(--store-primary)] transition-colors duration-500`}>
-                    {product.name}
-                  </h3>
-
-                  <div className="flex items-center gap-2 mb-6">
-                    <div className="flex gap-1">
-                      {[1, 2, 3, 4, 5].map(s => <Star key={s} className="w-3 h-3 text-yellow-500 fill-yellow-500 shadow-sm" />)}
-                    </div>
-                    <span className="text-[10px] font-bold text-white/20 uppercase tracking-[0.15em] ml-2">(124 Ratings)</span>
-                  </div>
-
-                  <div className="mt-auto pt-6 border-t border-white/5 space-y-5">
-                    <div className="flex items-baseline justify-between">
-                      <span className="text-xs font-black text-white/20 uppercase tracking-widest">Price</span>
-                      <div className="text-2xl font-black tracking-tight text-white drop-shadow-sm">{product.price_formatted || `$${product.price}`}</div>
-                    </div>
-
-                    <button
-                      onClick={() => handleAddToCart(product)}
-                      className={`w-full flex items-center justify-center gap-3 py-3.5 text-black ${roundingClass} text-xs font-black uppercase tracking-[0.15em] hover:bg-white hover:scale-[1.02] active:scale-95 transition-all duration-500 shadow-xl`}
-                      style={{ backgroundColor: 'var(--store-btn-bg)' }}
-                    >
-                      <ShoppingCart className="w-4 h-4" />
-                      Add to Cart
+          <div className="overflow-hidden">
+            <motion.div
+              className="flex gap-6 sm:gap-10"
+              animate={{ x: `calc(-${productIndex} * (100% + ${windowWidth < 640 ? 24 : 40}px) / ${windowWidth < 640 ? 1 : windowWidth < 1024 ? 2 : 4})` }}
+              transition={{ type: "spring", damping: 25, stiffness: 120 }}
+            >
+              {products.map((product, i) => (
+                <div
+                  key={product.id}
+                  className="flex-shrink-0 w-full sm:w-[calc(50%-1.25rem)] lg:w-[calc(25%-1.875rem)] overflow-hidden group shadow-2xl border border-white/5 flex flex-col h-full hover:shadow-[0_45px_90px_-20px_rgba(0,0,0,0.6)] hover:border-[var(--store-primary)]/30 transition-all duration-700 relative"
+                  style={{
+                    backgroundColor: 'rgba(255,255,255,0.01)',
+                    borderRadius: roundingClass === 'rounded-full' ? '2.5rem' : roundingClass === 'rounded-2xl' ? '1.5rem' : '0',
+                    boxShadow: 'inset 0 1px 1px 0 rgba(255,255,255,0.05)'
+                  }}
+                >
+                  <div className="relative aspect-[4/3] overflow-hidden bg-white/[0.02]">
+                    <img
+                      src={resolveProductImage(product) || 'https://images.unsplash.com/photo-1591348122449-02525d743a1a?w=600&h=800&q=80'}
+                      className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+                    />
+                    {i % 4 === 0 && <span className="absolute top-4 sm:top-6 left-4 sm:left-6 bg-rose-500 text-white text-[9px] sm:text-xs font-bold px-3 sm:px-4 py-1 sm:py-1.5 rounded-full uppercase tracking-widest shadow-lg">Sale</span>}
+                    <button className="absolute top-4 sm:top-6 right-4 sm:right-6 p-3 sm:p-4 bg-white/90 backdrop-blur-md rounded-2xl opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all shadow-xl hover:scale-110 active:scale-95">
+                      <Heart className="w-5 h-5 text-gray-400 hover:text-rose-500 transition-colors" />
                     </button>
                   </div>
+                  <div className="p-5 sm:p-8 flex-1 flex flex-col">
+                    <div className="flex items-center justify-between mb-3 sm:mb-4">
+                      <div className="text-[9px] sm:text-xs font-black text-[var(--store-primary)] uppercase tracking-[0.25em]">Handmade Quality</div>
+                      <div className="flex items-center gap-2 opacity-30 group-hover:opacity-100 transition-all duration-500">
+                        <CheckCircle className="w-3 sm:w-4 h-3 sm:h-4 text-[var(--store-primary)]" />
+                        <span className="text-[9px] sm:text-xs font-black uppercase text-white tracking-widest">Verified</span>
+                      </div>
+                    </div>
+
+                    <h3 className={`${botanicalSerif} text-white/95 text-xl sm:text-2xl font-black mb-3 sm:mb-4 line-clamp-2 leading-[1.15] group-hover:text-[var(--store-primary)] transition-colors duration-500`}>
+                      {product.name}
+                    </h3>
+
+                    <div className="flex items-center gap-2 mb-4 sm:mb-6">
+                      <div className="flex gap-1">
+                        {[1, 2, 3, 4, 5].map(s => <Star key={s} className="w-2.5 sm:w-3 h-2.5 sm:h-3 text-yellow-500 fill-yellow-500 shadow-sm" />)}
+                      </div>
+                      <span className="text-[9px] sm:text-[10px] font-bold text-white/20 uppercase tracking-[0.15em] ml-2">(124 Ratings)</span>
+                    </div>
+
+                    <div className="mt-auto pt-4 sm:pt-6 border-t border-white/5 space-y-4 sm:space-y-5">
+                      <div className="flex items-baseline justify-between">
+                        <span className="text-[9px] sm:text-xs font-black text-white/20 uppercase tracking-widest">Price</span>
+                        <div className="text-xl sm:text-2xl font-black tracking-tight text-white drop-shadow-sm">{product.price_formatted || `$${product.price}`}</div>
+                      </div>
+
+                      <button
+                        onClick={() => handleAddToCart(product)}
+                        className={`w-full flex items-center justify-center gap-3 py-3 sm:py-3.5 text-black ${roundingClass} text-[10px] sm:text-xs font-black uppercase tracking-[0.15em] hover:bg-white hover:scale-[1.02] active:scale-95 transition-all duration-500 shadow-xl`}
+                        style={{ backgroundColor: 'var(--store-btn-bg)' }}
+                      >
+                        <ShoppingCart className="w-4 h-4" />
+                        Add to Cart
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </motion.div>
-            ))}
+              ))}
+            </motion.div>
           </div>
 
           {/* Trust Badges Strip */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-20 py-12 border-y border-white/5">
-            {[
-              { title: 'Free Shipping', sub: 'On orders over $75', icon: Truck },
-              { title: '30-Day Returns', sub: 'Easy returns guarantee', icon: RefreshCw },
-              { title: 'Secure Payment', sub: '100% Secure Checkout', icon: ShieldCheck },
-              { title: '24/7 Support', sub: 'Dedicated help line', icon: MessageCircle },
-            ].map((item, i) => (
-              <div key={i} className="flex items-center gap-6">
-                <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 shrink-0 group hover:border-[var(--store-accent)]/50 transition-colors">
-                  <item.icon className="w-6 h-6 text-[var(--store-accent)]" />
+          <div className="mt-8 sm:mt-16 py-8 sm:py-16 px-4 sm:px-6 border-y border-white/5 bg-white/[0.01] backdrop-blur-sm -mx-4 sm:-mx-6 lg:-mx-12">
+            <div className="max-w-7xl mx-auto grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-10">
+              {[
+                { icon: Clock, label: 'Fast Global Shipping', desc: 'Arrives in 3-5 days' },
+                { icon: ShieldCheck, label: 'Secure Payments', desc: '100% encrypted' },
+                { icon: RefreshCw, label: 'Easy Returns', desc: '30-day window' },
+                { icon: Award, label: 'Certified Quality', desc: 'Hand-picked items' }
+              ].map((badge, idx) => (
+                <div key={idx} className="flex flex-col items-center text-center group cursor-default">
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-3xl bg-white/5 flex items-center justify-center mb-4 sm:mb-6 border border-white/5 group-hover:border-[var(--store-primary)]/30 group-hover:bg-white/10 transition-all duration-500">
+                    <badge.icon className="w-5 h-5 sm:w-7 sm:h-7 text-[var(--store-primary)]" />
+                  </div>
+                  <h4 className="text-[10px] sm:text-xs font-black text-white uppercase tracking-widest mb-1 sm:mb-2">{badge.label}</h4>
+                  <p className="text-[8px] sm:text-[10px] font-bold text-white/30 uppercase tracking-widest">{badge.desc}</p>
                 </div>
-                <div>
-                  <div className="text-sm font-bold text-white uppercase tracking-widest mb-1">{item.title}</div>
-                  <div className="text-xs text-white/40 uppercase font-bold">{item.sub}</div>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
 
+
           {/* 6. ENRICHED CONTENT SECTIONS */}
-          <div className="mt-32 space-y-32">
+          <div className="mt-16 sm:mt-32 space-y-16 sm:space-y-32">
             {/* Values & Philosophy */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-12">
               {[
                 {
                   title: 'Pure Craftsmanship',
-                  desc: 'Every item is meticulously handcrafted in small batches to preserve the integrity of our botanical ingredients.',
+                  desc: 'Every item is meticulously handcrafted in small batches to preserve the integrity of our ingredients.',
                   icon: Award,
                   color: 'text-amber-400'
                 },
                 {
                   title: 'Eco-Conscious',
-                  desc: 'We prioritize sustainability from seed to shelf, using 100% plastic-free packaging and ethically sourced materials.',
+                  desc: 'We prioritize sustainability from seed to shelf, using plastic-free packaging and ethically sourced materials.',
                   icon: Globe,
                   color: 'text-emerald-400'
                 },
@@ -457,37 +540,38 @@ const StorefrontPage: React.FC = () => {
                   color: 'text-rose-400'
                 }
               ].map((v, i) => (
-                <div key={i} className="group p-8 rounded-[2rem] bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-all duration-500">
-                  <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                    <v.icon className={`w-6 h-6 ${v.color}`} />
+                <div key={i} className="group p-6 sm:p-8 rounded-[2rem] bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-all duration-500">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/5 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                    <v.icon className={`w-5 h-5 sm:w-6 sm:h-6 ${v.color}`} />
                   </div>
-                  <h4 className="text-xl font-bold text-white mb-4 uppercase tracking-tight">{v.title}</h4>
-                  <p className="text-sm text-white/40 leading-relaxed font-medium">{v.desc}</p>
+                  <h4 className="text-lg sm:text-xl font-bold text-white mb-3 sm:mb-4 uppercase tracking-tight">{v.title}</h4>
+                  <p className="text-xs sm:text-sm text-white/40 leading-relaxed font-medium">{v.desc}</p>
                 </div>
               ))}
             </div>
 
             {/* Our Story / AI Description Section */}
-            <div className="relative overflow-hidden rounded-[4rem] border border-white/5 bg-white/[0.01] backdrop-blur-3xl p-8 md:p-16 lg:p-24 shadow-2xl">
+            <div className="relative overflow-hidden rounded-3xl sm:rounded-3xl border border-white/5 bg-white/[0.01] backdrop-blur-3xl p-6 sm:p-12 md:p-16 lg:p-24 shadow-2xl">
               <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
               <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-[var(--store-primary)]/5 to-transparent pointer-events-none" />
-              <div className="max-w-3xl relative z-10">
-                <div className="flex items-center gap-4 mb-8">
+              <div className="max-w-4xl mx-auto text-center relative z-10">
+                <div className="flex items-center justify-center gap-4 mb-8">
                   <div className="w-12 h-px bg-[var(--store-primary)]" />
-                  <span className="text-xs font-black uppercase tracking-[0.3em] text-[var(--store-primary)]">The Artisan's Journey</span>
+                  <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.3em] text-[var(--store-primary)]">Our Story</span>
+                  <div className="w-12 h-px bg-[var(--store-primary)]" />
                 </div>
                 <h3
-                  className={`${botanicalSerif} ${getHeadingSize('h2')} font-medium text-white mb-10 leading-tight`}
+                  className={`${botanicalSerif} ${getHeadingSize('h2')} font-medium text-white mb-8 sm:mb-12 leading-tight`}
                   style={{ fontFamily: `var(--store-heading-font), serif` }}
                 >
                   Crafting a legacy of <span className="italic text-[var(--store-accent)]">Natural Excellence</span>
                 </h3>
-                <div className="space-y-8">
-                  <p className="text-xl text-white/90 leading-relaxed italic font-serif">
+                <div className="space-y-8 sm:space-y-10 max-w-3xl mx-auto">
+                  <p className="text-lg sm:text-2xl text-white/95 leading-relaxed italic font-serif">
                     {store?.socials?.description || store?.about || "Our journey began with a simple belief: that nature holds the ultimate secrets to health and beauty. We have spent years perfecting our traditional recipes to bring you products that are as effective as they are pure."}
                   </p>
-                  <p className="text-lg text-white/40 leading-relaxed">
-                    {store?.socials?.metaTitle ? `At ${store.display_name}, we are dedicated to ${store.socials.metaTitle.toLowerCase()}.` : ""} Founded on the principles of transparency and purity, {store?.display_name || slug} is more than just a brand. It is a dedication to the art of slows living and the beauty of handcrafted goods. Every choice we make, from our organic ingredients to our eco-friendly packaging, is a step towards a more beautiful and sustainable future.
+                  <p className="text-sm sm:text-lg text-white/40 leading-relaxed font-medium">
+                    {store?.socials?.metaTitle ? `At ${store.display_name}, we are dedicated to ${store.socials.metaTitle.toLowerCase()}.` : ""} Founded on the principles of transparency and purity, {store?.display_name || slug} is more than just a brand. It is a dedication to the art of slow living and the beauty of handcrafted goods.
                   </p>
                 </div>
               </div>
@@ -496,7 +580,7 @@ const StorefrontPage: React.FC = () => {
 
 
           {/* Review & About Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mt-32">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 sm:gap-12 mt-16 sm:mt-32">
 
             {/* Write a Review */}
             <div className="flex flex-col h-full">
@@ -511,7 +595,7 @@ const StorefrontPage: React.FC = () => {
               </div>
 
               {currentUser ? (
-                <div className="bg-white/[0.02] border border-white/5 rounded-3xl p-8 shadow-xl flex-1">
+                <div className="bg-white/[0.02] border border-white/5 rounded-3xl p-5 sm:p-8 shadow-xl flex-1 flex flex-col">
                   {/* Reviewer identity */}
                   <div className="flex items-center gap-4 mb-6">
                     <div className="w-14 h-14 rounded-full overflow-hidden border border-white/10 shrink-0 bg-white/5 flex items-center justify-center">
@@ -559,7 +643,7 @@ const StorefrontPage: React.FC = () => {
                     onChange={(e) => setReviewText(e.target.value)}
                     placeholder="Share your experience with this store..."
                     rows={4}
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-sm text-white placeholder:text-white/20 resize-none focus:outline-none focus:border-[var(--store-accent)]/40 transition-all mb-5"
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 sm:p-5 text-sm text-white placeholder:text-white/20 resize-none focus:outline-none focus:border-[var(--store-accent)]/40 transition-all mb-6 flex-1"
                   />
 
                   <button
@@ -582,14 +666,14 @@ const StorefrontPage: React.FC = () => {
                         toast({ variant: 'destructive', title: 'Error', description: err.response?.data?.detail || 'Failed to submit review' });
                       }
                     }}
-                    className="w-full flex items-center justify-center gap-3 py-4 bg-[var(--store-primary)] text-black rounded-xl text-xs font-black uppercase tracking-widest hover:opacity-90 hover:scale-[1.02] active:scale-95 transition-all shadow-xl"
+                    className="w-full flex items-center justify-center gap-3 py-3.5 sm:py-4 bg-[var(--store-primary)] text-black rounded-xl text-xs font-black uppercase tracking-widest hover:opacity-90 transition-all shadow-xl"
                   >
                     <Send className="w-4 h-4" />
                     Submit Review
                   </button>
                 </div>
               ) : (
-                <div className="bg-white/[0.02] border border-white/5 rounded-3xl p-10 text-center flex-1 flex flex-col items-center justify-center">
+                <div className="bg-white/[0.02] border border-white/5 rounded-3xl p-6 sm:p-10 text-center flex-1 flex flex-col items-center justify-center">
                   <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-5 border border-white/10">
                     <Star className="w-7 h-7 text-white/20" />
                   </div>
@@ -609,13 +693,13 @@ const StorefrontPage: React.FC = () => {
               <div className="flex items-center gap-4 mb-8">
                 <div className="w-1 h-8 bg-[var(--store-primary)] rounded-full" />
                 <h3
-                  className={`${botanicalSerif} ${getHeadingSize('h3')} font-medium`}
+                  className={`${botanicalSerif} ${getHeadingSize('h3')} font-medium text-white`}
                   style={{ fontFamily: `var(--store-heading-font), serif` }}
                 >
-                  About {store?.display_name || slug}
+                  About the Merchant
                 </h3>
               </div>
-              <div className="bg-white/[0.02] border border-white/5 rounded-3xl p-8 shadow-xl flex-1">
+              <div className="bg-white/[0.02] border border-white/5 rounded-3xl p-6 sm:p-10 shadow-xl flex-1 flex flex-col relative overflow-hidden group">
                 {/* Vendor avatar */}
                 <div className="flex items-center gap-5 mb-7">
                   <div className="w-16 h-16 rounded-full overflow-hidden border border-white/10 shrink-0 bg-white/5">
@@ -679,75 +763,98 @@ const StorefrontPage: React.FC = () => {
                   )}
                   <button
                     onClick={() => setShowContactModal(true)}
-                    className="mt-4 w-full flex items-center justify-center gap-2 py-3 border border-white/10 rounded-xl text-xs font-bold text-white/60 uppercase tracking-widest hover:bg-white/[0.03] hover:text-white transition-all"
+                    className="mt-6 w-full flex items-center justify-center gap-3 py-4 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-white/60 hover:bg-white/5 hover:text-white transition-all group/btn"
                   >
-                    <MessageCircle className="w-4 h-4" />
-                    Contact This Vendor
+                    <MessageCircle className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+                    Contact Vendor
                   </button>
-                  <Store className="w-10 h-10 text-white/20" />
-                </div>
-                <h2 className="text-3xl md:text-5xl font-black text-white tracking-tight text-center md:text-left drop-shadow-sm" style={{ fontFamily: `var(--store-heading-font), serif` }}>
-                  {store?.display_name || slug}
-                </h2>
-                <p className="text-sm text-white/50 max-w-sm text-center md:text-left leading-relaxed mt-2 font-medium">
-                  {store?.socials?.valueProposition || store?.about || "Experience the art of artisanal excellence"}
-                </p>
-
-                <div className="flex items-center gap-5 mt-6">
-                  {store?.socials?.instagram && <a href={store.socials.instagram} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/5 hover:bg-white/10 hover:border-[var(--store-accent)]/30 text-white/50 hover:text-white transition-all"><Instagram className="w-4 h-4" /></a>}
-                  {store?.socials?.facebook && <a href={store.socials.facebook} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/5 hover:bg-white/10 hover:border-[var(--store-accent)]/30 text-white/50 hover:text-white transition-all"><Facebook className="w-4 h-4" /></a>}
-                  {store?.socials?.twitter && <a href={store.socials.twitter} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/5 hover:bg-white/10 hover:border-[var(--store-accent)]/30 text-white/50 hover:text-white transition-all"><Twitter className="w-4 h-4" /></a>}
                 </div>
               </div>
 
             </div>
           </div>
 
-          {/* Approved Reviews Section */}
+          {/* Approved Reviews Section - Carousel Style */}
           {storeReviews && storeReviews.length > 0 && (
-            <div className="mt-20">
-              <div className="flex items-center gap-4 mb-10">
-                <div className="w-1 h-8 bg-[var(--store-primary)] rounded-full" />
-                <h3
-                  className={`${botanicalSerif} ${getHeadingSize('h3')} font-medium`}
-                  style={{ fontFamily: `var(--store-heading-font), serif` }}
-                >
-                  what our client says about us
-                </h3>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {storeReviews.map((review) => (
-                  <div key={review.id} className="bg-white/[0.02] border border-white/5 rounded-3xl p-6 shadow-xl flex flex-col">
-                    <div className="flex items-center gap-4 mb-4">
-                      <div className="w-12 h-12 rounded-full overflow-hidden border border-white/10 shrink-0 bg-white/5 flex items-center justify-center">
-                        {review.buyer_image ? (
-                          <img src={review.buyer_image} className="w-full h-full object-cover" />
-                        ) : (
-                          <span className="text-white/60 text-lg font-bold">
-                            {((review.buyer_full_name || review.buyer_name || 'U')[0]).toUpperCase()}
-                          </span>
-                        )}
-                      </div>
-                      <div>
-                        <div className="text-sm font-bold text-white">{review.buyer_full_name || review.buyer_name}</div>
-                        <div className="text-[10px] font-bold text-[var(--store-accent)] uppercase tracking-widest mt-1">Verified Buyer</div>
-                      </div>
+            <div className="mt-20 relative px-4">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+                <div className="flex items-center gap-4">
+                  <div className="w-1 h-8 bg-[var(--store-primary)] rounded-full" />
+                  <h3
+                    className={`${botanicalSerif} ${getHeadingSize('h3')} font-medium`}
+                    style={{ fontFamily: `var(--store-heading-font), serif` }}
+                  >
+                    what our client says about us
+                  </h3>
+                </div>
+
+                {/* Carousel Controls */}
+                {storeReviews.length > 1 && (
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setReviewIndex(prev => Math.max(0, prev - 1))}
+                      disabled={reviewIndex === 0}
+                      className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 disabled:opacity-20 disabled:cursor-not-allowed transition-all"
+                    >
+                      <ChevronLeft className="w-5 h-5 text-white" />
+                    </button>
+                    <div className="text-[10px] font-bold text-white/30 uppercase tracking-widest px-2">
+                      {reviewIndex + 1} / {Math.ceil(storeReviews.length / (windowWidth < 640 ? 1 : windowWidth < 1024 ? 2 : 3))}
                     </div>
-                    <div className="flex gap-1 mb-4">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star
-                          key={star}
-                          className={`w-4 h-4 ${star <= review.rating ? 'text-yellow-400 fill-yellow-400' : 'text-white/20'}`}
-                        />
-                      ))}
-                    </div>
-                    <p className="text-sm text-white/70 leading-relaxed italic border-l-2 border-[var(--store-primary)]/30 pl-4">{review.comment}</p>
+                    <button
+                      onClick={() => setReviewIndex(prev => Math.min(storeReviews.length - (windowWidth < 640 ? 1 : windowWidth < 1024 ? 2 : 3), prev + 1))}
+                      disabled={reviewIndex >= storeReviews.length - (windowWidth < 640 ? 1 : windowWidth < 1024 ? 2 : 3)}
+                      className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 disabled:opacity-20 disabled:cursor-not-allowed transition-all"
+                    >
+                      <ChevronRight className="w-5 h-5 text-white" />
+                    </button>
                   </div>
-                ))}
+                )}
+              </div>
+
+              <div className="overflow-hidden">
+                <motion.div
+                  className="flex gap-6 sm:gap-10"
+                  animate={{ x: `calc(-${reviewIndex} * (100% + ${windowWidth < 640 ? 24 : 40}px) / ${windowWidth < 640 ? 1 : windowWidth < 1024 ? 2 : 3})` }}
+                  transition={{ type: "spring", damping: 25, stiffness: 120 }}
+                >
+                  {storeReviews.map((review) => (
+                    <div
+                      key={review.id}
+                      className="bg-white/[0.02] border border-white/5 rounded-3xl p-5 sm:p-8 flex-shrink-0 w-full sm:w-[calc(50%-1.25rem)] lg:w-[calc(33.333%-1.666rem)] shadow-xl flex flex-col"
+                    >
+                      <div className="flex items-center gap-4 mb-4">
+                        <div className="w-12 h-12 rounded-full overflow-hidden border border-white/10 shrink-0 bg-white/5 flex items-center justify-center">
+                          {review.buyer_image ? (
+                            <img src={resolveMediaUrl(review.buyer_image)} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <span className="text-white/60 text-lg font-bold">
+                                {((review.buyer_full_name || review.buyer_name || 'U')[0]).toUpperCase()}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <div className="text-sm font-bold text-white">{review.buyer_full_name || review.buyer_name}</div>
+                          <div className="text-[10px] font-bold text-[var(--store-accent)] uppercase tracking-widest mt-1">Verified Buyer</div>
+                        </div>
+                      </div>
+                      <div className="flex gap-1 mb-4">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            className={`w-3.5 h-3.5 ${star <= review.rating ? 'text-yellow-400 fill-yellow-400' : 'text-white/20'}`}
+                          />
+                        ))}
+                      </div>
+                      <p className="text-sm text-white/70 leading-relaxed italic border-l-2 border-[var(--store-primary)]/30 pl-4">{review.comment}</p>
+                    </div>
+                  ))}
+                </motion.div>
               </div>
             </div>
           )}
-
           {/* Divider & Copyright */}
           <div className="relative z-10 mt-12 pt-6 border-t border-white/5 flex flex-col md:flex-row items-center justify-between text-center gap-6">
             <div className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em]">
@@ -759,82 +866,92 @@ const StorefrontPage: React.FC = () => {
             </Link>
           </div>
         </div>
-      </div>
 
-      <AnimatePresence>
-        {showContactModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-xl"
-          >
+        <AnimatePresence>
+          {showContactModal && (
             <motion.div
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
-              className="w-full max-w-2xl bg-[#0b141a] rounded-[3rem] p-12 border border-white/10 shadow-2xl relative overflow-hidden"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-xl"
             >
-              <div className="flex items-center justify-between mb-10">
-                <h3 className="text-3xl font-black text-white uppercase tracking-tight">Contact Vendor</h3>
-                <button
-                  onClick={() => setShowContactModal(false)}
-                  className="p-4 rounded-full bg-white/5 hover:bg-white/10 transition-colors"
-                >
-                  <X className="w-6 h-6 text-white" />
-                </button>
-              </div>
-              <div className="grid gap-6">
-                {/* Digital Channels */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 font-black uppercase tracking-widest text-[11px]">
-                  <button className="flex items-center gap-6 p-6 bg-white/5 rounded-2xl hover:bg-white/10 transition-all text-white group border border-white/5 hover:border-[var(--store-accent)]/30">
-                    <MessageCircle className="w-6 h-6 text-[var(--store-accent)] group-hover:scale-110 transition-transform" />
-                    Chat Now
-                  </button>
-                  <a
-                    href={`mailto:${vendor?.email || 'support@example.com'}`}
-                    className="flex items-center gap-6 p-6 bg-white/5 rounded-2xl hover:bg-white/10 transition-all text-white group border border-white/5 hover:border-[var(--store-accent)]/30"
+              <motion.div
+                initial={{ scale: 0.9, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.9, y: 20 }}
+                className="w-full max-w-2xl bg-[#0b141a] rounded-[3rem] p-6 sm:p-12 border border-white/10 shadow-2xl relative overflow-hidden"
+              >
+                <div className="flex items-center justify-between mb-10">
+                  <h3 className="text-3xl font-black text-white uppercase tracking-tight">Contact Vendor</h3>
+                  <button
+                    onClick={() => setShowContactModal(false)}
+                    className="p-4 rounded-full bg-white/5 hover:bg-white/10 transition-colors"
                   >
-                    <Mail className="w-6 h-6 text-[var(--store-accent)] group-hover:scale-110 transition-transform" />
-                    Send Email
-                  </a>
-                  {vendor?.phone && (
-                    <a
-                      href={`tel:${vendor.phone}`}
-                      className="flex items-center gap-6 p-6 bg-white/5 rounded-2xl hover:bg-white/10 transition-all text-white group border border-white/5 hover:border-[var(--store-accent)]/30 md:col-span-2"
-                    >
-                      <Phone className="w-6 h-6 text-[var(--store-accent)] group-hover:scale-110 transition-transform" />
-                      Call {vendor.phone}
-                    </a>
-                  )}
+                    <X className="w-6 h-6 text-white" />
+                  </button>
                 </div>
+                <div className="grid gap-6">
+                  {/* Digital Channels */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 font-black uppercase tracking-widest text-[11px]">
+                    <button
+                      onClick={handleContactVendorChat}
+                      disabled={isChatLoading}
+                      className="flex items-center gap-6 p-6 bg-white/5 rounded-2xl hover:bg-white/10 transition-all text-white group border border-white/5 hover:border-[var(--store-accent)]/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isChatLoading ? (
+                        <div className="w-6 h-6 border-2 border-[var(--store-accent)] border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <MessageCircle className="w-6 h-6 text-[var(--store-accent)] group-hover:scale-110 transition-transform" />
+                      )}
+                      {isChatLoading ? 'Starting Chat...' : 'Chat Now'}
+                    </button>
+                    <a
+                      href={`mailto:${vendor?.email || 'support@example.com'}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-6 p-6 bg-white/5 rounded-2xl hover:bg-white/10 transition-all text-white group border border-white/5 hover:border-[var(--store-accent)]/30"
+                    >
+                      <Mail className="w-6 h-6 text-[var(--store-accent)] group-hover:scale-110 transition-transform" />
+                      Send Email
+                    </a>
+                    {vendor?.phone && (
+                      <a
+                        href={`tel:${vendor.phone}`}
+                        className="flex items-center gap-6 p-6 bg-white/5 rounded-2xl hover:bg-white/10 transition-all text-white group border border-white/5 hover:border-[var(--store-accent)]/30 md:col-span-2"
+                      >
+                        <Phone className="w-6 h-6 text-[var(--store-accent)] group-hover:scale-110 transition-transform" />
+                        Call {vendor.phone}
+                      </a>
+                    )}
+                  </div>
 
-                {/* Physical Location */}
-                {vendor?.address && (
-                  <div className="p-6 bg-white/[0.02] rounded-2xl border border-white/5">
-                    <div className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em] mb-3">Our Location</div>
-                    <div className="flex items-start gap-4 text-white/80">
-                      <MapPin className="w-5 h-5 text-[var(--store-accent)] shrink-0" />
-                      <span className="text-sm font-bold">{vendor.address}</span>
+                  {/* Physical Location */}
+                  {vendor?.address && (
+                    <div className="p-6 bg-white/[0.02] rounded-2xl border border-white/5">
+                      <div className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em] mb-3">Our Location</div>
+                      <div className="flex items-start gap-4 text-white/80">
+                        <MapPin className="w-5 h-5 text-[var(--store-accent)] shrink-0" />
+                        <span className="text-sm font-bold">{vendor.address}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Social Media Connect */}
+                  <div className="pt-4 border-t border-white/5">
+                    <div className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em] mb-4 text-center">Connect with us</div>
+                    <div className="flex justify-center gap-8">
+                      <Instagram className="w-6 h-6 opacity-40 hover:opacity-100 hover:text-[var(--store-accent)] transition-all cursor-pointer" />
+                      <Facebook className="w-6 h-6 opacity-40 hover:opacity-100 hover:text-[var(--store-accent)] transition-all cursor-pointer" />
+                      <Twitter className="w-6 h-6 opacity-40 hover:opacity-100 hover:text-[var(--store-accent)] transition-all cursor-pointer" />
                     </div>
                   </div>
-                )}
-
-                {/* Social Media Connect */}
-                <div className="pt-4 border-t border-white/5">
-                  <div className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em] mb-4 text-center">Connect with us</div>
-                  <div className="flex justify-center gap-8">
-                    <Instagram className="w-6 h-6 opacity-40 hover:opacity-100 hover:text-[var(--store-accent)] transition-all cursor-pointer" />
-                    <Facebook className="w-6 h-6 opacity-40 hover:opacity-100 hover:text-[var(--store-accent)] transition-all cursor-pointer" />
-                    <Twitter className="w-6 h-6 opacity-40 hover:opacity-100 hover:text-[var(--store-accent)] transition-all cursor-pointer" />
-                  </div>
                 </div>
-              </div>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+          )}
+        </AnimatePresence>
+      </div >
+    </div >
   );
 };
 

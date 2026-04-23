@@ -2,13 +2,13 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { useQuery } from '@tanstack/react-query';
-import { 
-  LayoutDashboard, 
-  Users, 
-  Package, 
-  ShoppingCart, 
-  DollarSign, 
-  BarChart3, 
+import {
+  LayoutDashboard,
+  Users,
+  Package,
+  ShoppingCart,
+  DollarSign,
+  BarChart3,
   Settings,
   Building2,
   CreditCard,
@@ -212,8 +212,8 @@ const UnifiedSidebar = () => {
   const menuItems = getMenuItems();
 
   const toggleExpanded = (path: string) => {
-    setExpandedItems(prev => 
-      prev.includes(path) 
+    setExpandedItems(prev =>
+      prev.includes(path)
         ? prev.filter(item => item !== path)
         : [...prev, path]
     );
@@ -224,15 +224,15 @@ const UnifiedSidebar = () => {
   };
 
   const isExpanded = (path: string) => {
-    return expandedItems.includes(path) || 
-           (menuItems.find(item => item.to === path)?.subItems?.some(sub => isActive(sub.to)));
+    return expandedItems.includes(path) ||
+      (menuItems.find(item => item.to === path)?.subItems?.some(sub => isActive(sub.to)));
   };
 
   const filteredConversations = conversations.filter(conv => {
     if (!conversationSearch) return true;
     const otherParticipant = conv.participants.find(p => p.id !== user?.id);
     return otherParticipant?.full_name?.toLowerCase().includes(conversationSearch.toLowerCase()) ||
-           otherParticipant?.email?.toLowerCase().includes(conversationSearch.toLowerCase());
+      otherParticipant?.email?.toLowerCase().includes(conversationSearch.toLowerCase());
   });
 
   const getOtherParticipant = (conversation: Conversation) => {
@@ -270,15 +270,13 @@ const UnifiedSidebar = () => {
               <Link
                 to={item.to}
                 onClick={() => setIsMobileOpen(false)}
-                className={`flex-1 flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 group ${
-                  isActive(item.to)
+                className={`flex-1 flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 group ${isActive(item.to)
                     ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-white border border-blue-400/30 shadow-lg shadow-blue-500/10'
                     : 'text-purple-200/90 hover:bg-white/10 hover:text-white'
-                }`}
+                  }`}
               >
-                <item.icon className={`mr-3 h-5 w-5 transition-colors ${
-                  isActive(item.to) ? 'text-blue-400' : 'text-purple-300 group-hover:text-purple-200'
-                }`} />
+                <item.icon className={`mr-3 h-5 w-5 transition-colors ${isActive(item.to) ? 'text-blue-400' : 'text-purple-300 group-hover:text-purple-200'
+                  }`} />
                 <span className="flex-1">{item.label}</span>
                 {item.badge && (
                   <span className="ml-2 px-2 py-1 text-xs bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-full">
@@ -286,7 +284,7 @@ const UnifiedSidebar = () => {
                   </span>
                 )}
               </Link>
-              
+
               {item.subItems && (
                 <button
                   onClick={() => toggleExpanded(item.to)}
@@ -300,7 +298,7 @@ const UnifiedSidebar = () => {
                 </button>
               )}
             </div>
-            
+
             {/* Sub-items */}
             {item.subItems && isExpanded(item.to) && (
               <div className="ml-8 mt-2 space-y-1">
@@ -309,11 +307,10 @@ const UnifiedSidebar = () => {
                     key={subItem.to}
                     to={subItem.to}
                     onClick={() => setIsMobileOpen(false)}
-                    className={`block px-4 py-2 text-sm rounded-lg transition-all duration-200 ${
-                      isActive(subItem.to)
+                    className={`block px-4 py-2 text-sm rounded-lg transition-all duration-200 ${isActive(subItem.to)
                         ? 'bg-gradient-to-r from-blue-500/15 to-purple-500/15 text-blue-300 font-medium border-l-2 border-blue-400'
                         : 'text-purple-200/70 hover:bg-white/5 hover:text-purple-200 border-l-2 border-transparent hover:border-purple-400/30'
-                    }`}
+                      }`}
                   >
                     {subItem.label}
                   </Link>
@@ -366,7 +363,7 @@ const UnifiedSidebar = () => {
                     return (
                       <Link
                         key={conversation.id}
-                        to={`/messages?conversation=${conversation.id}`}
+                        to={`/messages/${conversation.id}`}
                         onClick={() => setIsMobileOpen(false)}
                         className="flex items-center px-3 py-2 rounded-lg hover:bg-white/10 transition-colors group"
                       >

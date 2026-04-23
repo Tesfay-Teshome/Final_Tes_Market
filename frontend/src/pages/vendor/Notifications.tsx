@@ -241,7 +241,11 @@ const Notifications = () => {
                             className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-amber-600 to-amber-800 text-white text-[11px] font-black uppercase tracking-widest rounded-xl shadow-lg border border-amber-400/20 transition-all"
                           >
                             <Check className="h-3.5 w-3.5" />
-                            Confirm Receipt & Ship Order
+                            {notification.notification_type === 'store_review'
+                              ? 'Approve & Show on Storefront'
+                              : notification.notification_type === 'order'
+                                ? 'Confirm Receipt & Ship Order'
+                                : 'Confirm Notification'}
                           </motion.button>
                         )}
                       </div>
@@ -301,7 +305,12 @@ const Notifications = () => {
                   <p className="text-[#8B949E] text-sm font-medium whitespace-pre-wrap">{selectedNotification.message}</p>
                 </div>
                 <p className="text-[#8B949E] text-xs font-medium leading-relaxed">
-                  By confirming, you acknowledge receipt and commit to processing the shipping request. The administrator will be immediately notified.
+                  {selectedNotification.notification_type === 'store_review'
+                    ? "By confirming, you approve this review to be displayed on your public storefront. The administrator will be notified of your moderation action."
+                    : selectedNotification.notification_type === 'order'
+                      ? "By confirming, you acknowledge receipt and commit to processing the shipping request. The administrator will be immediately notified."
+                      : "By confirming, you acknowledge receipt of this notification. The administrator will be notified where applicable."
+                  }
                 </p>
               </div>
 
@@ -326,7 +335,9 @@ const Notifications = () => {
                   ) : (
                     <>
                       <CheckCircle className="h-4 w-4" />
-                      Confirm & Notify Admin
+                      {selectedNotification.notification_type === 'store_review'
+                        ? 'Approve & Show'
+                        : 'Confirm & Notify Admin'}
                     </>
                   )}
                 </motion.button>
