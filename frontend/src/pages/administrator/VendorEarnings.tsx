@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { motion } from 'framer-motion';
 import { adminAPI } from '@/services/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -116,44 +117,57 @@ const VendorEarnings = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Pending Payouts</CardDescription>
-            <CardTitle className="text-2xl flex items-center">
-              <DollarSign className="h-5 w-5 mr-1 text-yellow-500" />
-              ${totalPendingAmount.toFixed(2)}
-            </CardTitle>
-          </CardHeader>
+      <motion.div
+        className="grid grid-cols-1 md:grid-cols-4 gap-6"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+      >
+        <Card className="bg-gradient-to-br from-orange-600 to-red-600/95 backdrop-blur-sm text-white border-2 border-orange-500/40 shadow-2xl hover:shadow-3xl transition-all duration-300">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-orange-100 text-sm font-medium">Pending Payouts</p>
+                <p className="text-2xl font-bold">${totalPendingAmount.toFixed(2)}</p>
+              </div>
+              <DollarSign className="h-8 w-8 text-orange-200" />
+            </div>
+          </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Processing</CardDescription>
-            <CardTitle className="text-2xl flex items-center">
-              <Clock className="h-5 w-5 mr-1 text-blue-500" />
-              ${totalProcessingAmount.toFixed(2)}
-            </CardTitle>
-          </CardHeader>
+        <Card className="bg-gradient-to-br from-emerald-600 to-emerald-700/95 backdrop-blur-sm text-white border-2 border-emerald-500/40 shadow-2xl hover:shadow-3xl transition-all duration-300">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-emerald-100 text-sm font-medium">Processing</p>
+                <p className="text-2xl font-bold">${totalProcessingAmount.toFixed(2)}</p>
+              </div>
+              <Clock className="h-8 w-8 text-emerald-200" />
+            </div>
+          </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Total Vendors</CardDescription>
-            <CardTitle className="text-2xl flex items-center">
-              <TrendingUp className="h-5 w-5 mr-1 text-green-500" />
-              {new Set(earnings?.map(e => e.vendor.id)).size || 0}
-            </CardTitle>
-          </CardHeader>
+        <Card className="bg-gradient-to-br from-green-600 to-green-700/95 backdrop-blur-sm text-white border-2 border-green-500/40 shadow-2xl hover:shadow-3xl transition-all duration-300">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-green-100 text-sm font-medium">Total Vendors</p>
+                <p className="text-2xl font-bold">{new Set(earnings?.map(e => e.vendor.id)).size || 0}</p>
+              </div>
+              <TrendingUp className="h-8 w-8 text-green-200" />
+            </div>
+          </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>This Month</CardDescription>
-            <CardTitle className="text-2xl flex items-center">
-              <Calendar className="h-5 w-5 mr-1 text-purple-500" />
-              ${earnings?.reduce((sum, e) => sum + e.amount, 0).toFixed(2) || '0.00'}
-            </CardTitle>
-          </CardHeader>
+        <Card className="bg-gradient-to-br from-violet-600 to-purple-700/95 backdrop-blur-sm text-white border-2 border-violet-500/40 shadow-2xl hover:shadow-3xl transition-all duration-300">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-violet-100 text-sm font-medium">This Month</p>
+                <p className="text-2xl font-bold">${earnings?.reduce((sum, e) => sum + e.amount, 0).toFixed(2) || '0.00'}</p>
+              </div>
+              <Calendar className="h-8 w-8 text-violet-200" />
+            </div>
+          </CardContent>
         </Card>
-      </div>
+      </motion.div>
 
       {/* Filters and Actions */}
       <Card>

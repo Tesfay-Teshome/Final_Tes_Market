@@ -199,67 +199,64 @@ const TestimonialManagement = () => {
           </div>
 
           {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-            <motion.div whileHover={{ scale: 1.02, y: -5 }} transition={{ type: "spring", stiffness: 300 }}>
-              <div className="bg-[#0F1720] border border-white/[0.08] rounded-2xl p-6 shadow-xl hover:border-yellow-500/30 transition-all duration-300 cursor-pointer">
+          <motion.div
+            className="grid grid-cols-1 md:grid-cols-4 gap-6"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <Card className="bg-gradient-to-br from-orange-600 to-red-600/95 backdrop-blur-sm text-white border-2 border-orange-500/40 shadow-2xl hover:shadow-3xl transition-all duration-300">
+              <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-yellow-300/80 text-sm font-medium">Pending Review</p>
-                    <p className="text-3xl font-bold text-white mt-1">{pendingTestimonials.length}</p>
-                    <p className="text-xs text-gray-500 mt-1">Awaiting approval</p>
+                    <p className="text-orange-100 text-sm font-medium">Pending Review</p>
+                    <p className="text-2xl font-bold">{pendingTestimonials.length}</p>
+                    <p className="text-[10px] text-orange-100/60 mt-1 uppercase font-bold">Awaiting approval</p>
                   </div>
-                  <div className="bg-gradient-to-br from-yellow-500 to-amber-600 p-3 rounded-xl shadow-lg">
-                    <AlertCircle className="h-6 w-6 text-white" />
-                  </div>
+                  <AlertCircle className="h-8 w-8 text-orange-200" />
                 </div>
-              </div>
-            </motion.div>
+              </CardContent>
+            </Card>
 
-            <motion.div whileHover={{ scale: 1.02, y: -5 }} transition={{ type: "spring", stiffness: 300 }}>
-              <div className="bg-[#0F1720] border border-white/[0.08] rounded-2xl p-6 shadow-xl hover:border-emerald-500/30 transition-all duration-300 cursor-pointer">
+            <Card className="bg-gradient-to-br from-green-600 to-green-700/95 backdrop-blur-sm text-white border-2 border-green-500/40 shadow-2xl hover:shadow-3xl transition-all duration-300">
+              <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-emerald-300/80 text-sm font-medium">Approved</p>
-                    <p className="text-3xl font-bold text-white mt-1">{approvedTestimonials.length}</p>
-                    <p className="text-xs text-gray-500 mt-1">Published testimonials</p>
+                    <p className="text-green-100 text-sm font-medium">Approved</p>
+                    <p className="text-2xl font-bold">{approvedTestimonials.length}</p>
+                    <p className="text-[10px] text-green-100/60 mt-1 uppercase font-bold">Published testimonials</p>
                   </div>
-                  <div className="bg-gradient-to-br from-emerald-500 to-green-600 p-3 rounded-xl shadow-lg">
-                    <ThumbsUp className="h-6 w-6 text-white" />
-                  </div>
+                  <ThumbsUp className="h-8 w-8 text-green-200" />
                 </div>
-              </div>
-            </motion.div>
+              </CardContent>
+            </Card>
 
-            <motion.div whileHover={{ scale: 1.02, y: -5 }} transition={{ type: "spring", stiffness: 300 }}>
-              <div className="bg-[#0F1720] border border-white/[0.08] rounded-2xl p-6 shadow-xl hover:border-blue-500/30 transition-all duration-300">
+            <Card className="bg-gradient-to-br from-emerald-600 to-emerald-700/95 backdrop-blur-sm text-white border-2 border-emerald-500/40 shadow-2xl hover:shadow-3xl transition-all duration-300">
+              <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-blue-300/80 text-sm font-medium">Average Rating</p>
-                    <p className="text-3xl font-bold text-white mt-1">{averageRating}</p>
-                    <p className="text-xs text-gray-500 mt-1">Out of 5.0 stars</p>
+                    <p className="text-emerald-100 text-sm font-medium">Average Rating</p>
+                    <p className="text-2xl font-bold">{averageRating}</p>
+                    <p className="text-[10px] text-emerald-100/60 mt-1 uppercase font-bold">Out of 5.0 stars</p>
                   </div>
-                  <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-3 rounded-xl shadow-lg">
-                    <Star className="h-6 w-6 text-white fill-white" />
-                  </div>
+                  <Star className="h-8 w-8 text-emerald-200 fill-white" />
                 </div>
-              </div>
-            </motion.div>
+              </CardContent>
+            </Card>
 
-            <motion.div whileHover={{ scale: 1.02, y: -5 }} transition={{ type: "spring", stiffness: 300 }}>
-              <div className="bg-[#0F1720] border border-white/[0.08] rounded-2xl p-6 shadow-xl hover:border-violet-500/30 transition-all duration-300">
+            <Card className="bg-gradient-to-br from-violet-600 to-purple-700/95 backdrop-blur-sm text-white border-2 border-violet-500/40 shadow-2xl hover:shadow-3xl transition-all duration-300">
+              <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-violet-300/80 text-sm font-medium">Total Reviews</p>
-                    <p className="text-3xl font-bold text-white mt-1">{allTestimonials.length}</p>
-                    <p className="text-xs text-gray-500 mt-1">All testimonials</p>
+                    <p className="text-violet-100 text-sm font-medium">Total Reviews</p>
+                    <p className="text-2xl font-bold">{allTestimonials.length}</p>
+                    <p className="text-[10px] text-violet-100/60 mt-1 uppercase font-bold">All testimonials</p>
                   </div>
-                  <div className="bg-gradient-to-br from-violet-500 to-purple-600 p-3 rounded-xl shadow-lg">
-                    <TrendingUp className="h-6 w-6 text-white" />
-                  </div>
+                  <TrendingUp className="h-8 w-8 text-violet-200" />
                 </div>
-              </div>
-            </motion.div>
-          </div>
+              </CardContent>
+            </Card>
+          </motion.div>
 
           {/* Filters */}
           <div className="bg-[#0F1720] border border-white/[0.08] rounded-2xl shadow-xl p-4 sm:p-6">

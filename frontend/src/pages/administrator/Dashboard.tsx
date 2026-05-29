@@ -1277,7 +1277,7 @@ const Dashboard = () => {
             </div>
 
             {/* BOTTOM ROW: Data Tables & Side Lists */}
-            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 mt-6 pb-20">
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 mt-6 pb-4 sm:pb-6">
               {/* LEFT: Top Vendors */}
               <motion.div
                 className="xl:col-span-8 flex flex-col"

@@ -7,6 +7,7 @@ import { vendorAPI } from '@/services/api';
 import { format } from 'date-fns';
 import { useState } from 'react';
 import { useToast } from '@/components/ui/use-toast';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -397,7 +398,7 @@ const Earnings = () => {
       <div className="min-h-screen bg-[#070B0F] flex items-center justify-center p-8 relative overflow-hidden">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-emerald-500/10 rounded-full blur-[120px]" />
         <div className="relative z-10 text-center">
-          <div className="h-20 w-20 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-8 animate-pulse">
+          <div className="h-20 w-20 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-8 animate-pulse">
             <Loader2 className="h-8 w-8 text-emerald-400 animate-spin" />
           </div>
           <h2 className="text-xl font-bold text-white uppercase tracking-widest">Loading Analytics</h2>
@@ -416,67 +417,84 @@ const Earnings = () => {
       </div>
 
       <div className="max-w-7xl mx-auto space-y-8 relative z-10">
-        {/* Header KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {/* Available Balance */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="rounded-2xl bg-emerald-600 p-5 relative overflow-hidden cursor-pointer group hover:scale-[1.02] transition-all duration-300 shadow-xl border-none">
-            <div className="flex justify-between items-start mb-2">
-              <span className="text-white/90 text-[10px] font-bold uppercase tracking-wider">Available for Withdrawal</span>
-              <div className="h-8 w-8 rounded-lg bg-white/20 flex items-center justify-center shadow-inner">
-                <Wallet className="h-4 w-4 text-white" />
-              </div>
-            </div>
-            <div className="text-[28px] font-extrabold text-white tracking-tight mb-2">${earningsData?.available_for_withdrawal ? Number(earningsData.available_for_withdrawal).toFixed(2) : '0.00'}</div>
-            <button
-              onClick={() => setShowWithdrawModal(true)}
-              className="w-full mt-2 py-3 bg-white/10 hover:bg-emerald-500/20 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-xl transition-all border border-white/10 hover:border-emerald-500/30 active:scale-[0.98] shadow-lg"
-            >
-              Request Withdrawal
-            </button>
-          </motion.div>
-
-          {/* Pending Balance */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="rounded-2xl bg-orange-500 p-5 relative overflow-hidden group hover:scale-[1.02] transition-all duration-300 shadow-xl border-none">
-            <div className="flex justify-between items-start mb-2">
-              <span className="text-white/90 text-[10px] font-bold uppercase tracking-wider">Pending Balance</span>
-              <div className="h-8 w-8 rounded-lg bg-white/20 flex items-center justify-center shadow-inner">
-                <Clock className="h-4 w-4 text-white" />
-              </div>
-            </div>
-            <div className="text-[28px] font-extrabold text-white tracking-tight mb-2">${earningsData?.pending_balance ? Number(earningsData.pending_balance).toFixed(2) : '0.00'}</div>
-            <div className="mt-2 px-3 py-1.5 bg-white/10 rounded-lg text-center border border-white/10">
-              <span className="text-[9px] font-bold text-white uppercase tracking-wider">In pending requests</span>
-            </div>
-          </motion.div>
-
-          {/* Total Earnings */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="rounded-2xl bg-blue-600 p-5 relative overflow-hidden group hover:scale-[1.02] transition-all duration-300 shadow-xl border-none">
-            <div className="flex justify-between items-start mb-2">
-              <span className="text-white/90 text-[10px] font-bold uppercase tracking-wider">Total Earnings</span>
-              <div className="h-8 w-8 rounded-lg bg-white/20 flex items-center justify-center shadow-inner">
-                <TrendingUp className="h-4 w-4 text-white" />
-              </div>
-            </div>
-            <div className="text-[28px] font-extrabold text-white tracking-tight mb-2">${earningsData?.total_earnings ? Number(earningsData.total_earnings).toFixed(2) : '0.00'}</div>
-            <div className="mt-2 px-3 py-1.5 bg-white/10 rounded-lg text-center border border-white/10">
-              <span className="text-[9px] font-bold text-white uppercase tracking-wider">Lifetime revenue</span>
-            </div>
-          </motion.div>
-
-          {/* Total Withdrawn */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="rounded-2xl bg-purple-600 p-5 relative overflow-hidden group hover:scale-[1.02] transition-all duration-300 shadow-xl border-none">
-            <div className="flex justify-between items-start mb-2">
-              <span className="text-white/90 text-[10px] font-bold uppercase tracking-wider">Total Withdrawn</span>
-              <div className="h-8 w-8 rounded-lg bg-white/20 flex items-center justify-center shadow-inner">
-                <CheckCircle className="h-4 w-4 text-white" />
-              </div>
-            </div>
-            <div className="text-[28px] font-extrabold text-white tracking-tight mb-2">${earningsData?.total_withdrawn ? Number(earningsData.total_withdrawn).toFixed(2) : '0.00'}</div>
-            <div className="mt-2 px-3 py-1.5 bg-white/10 rounded-lg text-center border border-white/10">
-              <span className="text-[9px] font-bold text-white uppercase tracking-wider">Paid to you</span>
-            </div>
-          </motion.div>
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-4">
+          <div className="space-y-1">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent leading-relaxed py-2">Earnings</h1>
+            <p className="text-gray-400 mt-1 font-medium flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-emerald-500" />
+              Track your revenue and performance metrics
+            </p>
+          </div>
+          <motion.button
+            whileHover={{ scale: 1.02, translateY: -2 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setShowWithdrawModal(true)}
+            className="h-11 px-6 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-800 text-white text-xs font-black uppercase tracking-widest border border-emerald-400/20 shadow-lg shadow-emerald-900/20 transition-all duration-300"
+          >
+            Request Payout
+          </motion.button>
         </div>
+
+        {/* Header KPI Cards */}
+        <motion.div
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          <Card className="bg-gradient-to-br from-emerald-600 to-emerald-700/95 backdrop-blur-sm text-white border-2 border-emerald-500/40 shadow-2xl hover:shadow-3xl transition-all duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-emerald-100 text-sm font-medium">Available for Withdrawal</p>
+                  <p className="text-2xl font-bold">${earningsData?.available_for_withdrawal ? Number(earningsData.available_for_withdrawal).toFixed(2) : '0.00'}</p>
+                  <p className="text-[10px] text-emerald-100/60 mt-1 uppercase font-bold">Ready to withdraw</p>
+                </div>
+                <Wallet className="h-8 w-8 text-emerald-200" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-orange-600 to-red-600/95 backdrop-blur-sm text-white border-2 border-orange-500/40 shadow-2xl hover:shadow-3xl transition-all duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-orange-100 text-sm font-medium">Pending Balance</p>
+                  <p className="text-2xl font-bold">${earningsData?.pending_balance ? Number(earningsData.pending_balance).toFixed(2) : '0.00'}</p>
+                  <p className="text-[10px] text-orange-100/60 mt-1 uppercase font-bold">In pending requests</p>
+                </div>
+                <Clock className="h-8 w-8 text-orange-200" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-green-600 to-green-700/95 backdrop-blur-sm text-white border-2 border-green-500/40 shadow-2xl hover:shadow-3xl transition-all duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-green-100 text-sm font-medium">Total Earnings</p>
+                  <p className="text-2xl font-bold">${earningsData?.total_earnings ? Number(earningsData.total_earnings).toFixed(2) : '0.00'}</p>
+                  <p className="text-[10px] text-green-100/60 mt-1 uppercase font-bold">Lifetime revenue</p>
+                </div>
+                <TrendingUp className="h-8 w-8 text-green-200" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-violet-600 to-purple-700/95 backdrop-blur-sm text-white border-2 border-violet-500/40 shadow-2xl hover:shadow-3xl transition-all duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-violet-100 text-sm font-medium">Total Withdrawn</p>
+                  <p className="text-2xl font-bold">${earningsData?.total_withdrawn ? Number(earningsData.total_withdrawn).toFixed(2) : '0.00'}</p>
+                  <p className="text-[10px] text-violet-100/60 mt-1 uppercase font-bold">Paid to you</p>
+                </div>
+                <CheckCircle className="h-8 w-8 text-violet-200" />
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
 
         {/* Chart Section */}
         <div className="bg-[#0F1720] border border-white/[0.08] rounded-2xl p-6 shadow-2xl">
@@ -498,7 +516,7 @@ const Earnings = () => {
 
         {/* Commission Status */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="bg-[#0D1117] border border-white/10 rounded-[32px] p-6 shadow-2xl relative overflow-hidden">
+          <div className="bg-[#0F1720] border border-white/10 rounded-2xl p-6 shadow-2xl relative overflow-hidden hover:border-[#00FF9D]/30 transition-colors">
             <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl" />
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-6">
@@ -525,7 +543,7 @@ const Earnings = () => {
             </div>
           </div>
 
-          <div className="bg-[#0D1117] border border-white/10 rounded-[32px] p-6 shadow-2xl lg:col-span-2 relative overflow-hidden">
+          <div className="bg-[#0F1720] border border-white/10 rounded-2xl p-6 shadow-2xl lg:col-span-2 relative overflow-hidden hover:border-[#00FF9D]/30 transition-colors">
             <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/5 rounded-full blur-3xl" />
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-6">
@@ -541,7 +559,7 @@ const Earnings = () => {
               {commissionData?.active_rules && commissionData.active_rules.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {commissionData.active_rules.map((rule: any, i: number) => (
-                    <div key={i} className="bg-white/[0.02] border border-white/10 rounded-2xl p-4 flex justify-between items-center group hover:border-purple-500/30 transition-all">
+                    <div key={i} className="bg-white/[0.02] border border-white/10 rounded-2xl p-4 flex justify-between items-center group hover:border-[#00FF9D]/30 transition-all">
                       <div>
                         <p className="text-[10px] font-black text-white uppercase tracking-widest">{rule.name}</p>
                         <p className="text-[9px] text-[#8B949E] font-bold mt-1">{rule.type}</p>
@@ -553,7 +571,7 @@ const Earnings = () => {
                   ))}
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center py-10 bg-white/[0.01] border border-white/5 border-dashed rounded-3xl">
+                <div className="flex flex-col items-center justify-center py-10 bg-white/[0.01] border border-white/5 border-dashed rounded-2xl">
                   <p className="text-[10px] font-black text-[#8B949E] uppercase tracking-widest">No custom protocols active</p>
                 </div>
               )}
@@ -576,7 +594,7 @@ const Earnings = () => {
           <div className="space-y-4">
             {earningsData?.payout_requests?.length ? (
               earningsData.payout_requests.map((request) => (
-                <div key={request.id} className="group bg-white/[0.02] border border-white/5 rounded-3xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 hover:bg-white/[0.04] transition-all hover:border-white/10">
+                <div key={request.id} className="group bg-white/[0.02] border border-white/5 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 hover:bg-[#00FF9D]/[0.05] hover:border-[#00FF9D]/30 transition-all hover:border-white/10">
                   <div className="flex items-center gap-6">
                     <div className={`h-12 w-12 rounded-2xl flex items-center justify-center border transition-all ${request.status === 'pending' ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' :
                       request.status === 'approved' ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' :
@@ -619,7 +637,7 @@ const Earnings = () => {
                 </div>
               ))
             ) : (
-              <div className="text-center py-20 bg-white/[0.01] border border-white/5 border-dashed rounded-[32px]">
+              <div className="text-center py-20 bg-white/[0.01] border border-white/5 border-dashed rounded-2xl">
                 <div className="h-16 w-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/10">
                   <ArrowDownCircle className="h-8 w-8 text-white/20" />
                 </div>
@@ -670,7 +688,7 @@ const Earnings = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6} className="text-center py-20 bg-white/[0.01] border border-white/5 border-dashed rounded-[32px]">
+                    <td colSpan={6} className="text-center py-20 bg-white/[0.01] border border-white/5 border-dashed rounded-2xl">
                       <p className="text-[10px] font-black text-[#8B949E] uppercase tracking-widest">No transactions detected in current cycle</p>
                     </td>
                   </tr>
@@ -688,7 +706,7 @@ const Earnings = () => {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 30 }}
               ref={modalRef}
-              className="w-full max-w-2xl bg-[#0D1117] border border-white/10 rounded-[32px] overflow-hidden shadow-2xl p-8 max-h-[90vh] overflow-y-auto custom-scrollbar"
+              className="w-full max-w-2xl bg-[#0F1720] border border-white/10 rounded-2xl overflow-hidden shadow-2xl p-8 max-h-[90vh] overflow-y-auto custom-scrollbar"
             >
               <div className="flex items-center justify-between mb-8">
                 <div>
@@ -725,7 +743,7 @@ const Earnings = () => {
                 </div>
 
                 {/* Payment Method Selection */}
-                <div className="space-y-4 p-6 bg-white/[0.02] border border-white/5 rounded-3xl">
+                <div className="space-y-4 p-6 bg-white/[0.02] border border-white/5 rounded-2xl">
                   <div className="flex items-center gap-3 mb-2">
                     <div className="h-8 w-8 rounded-lg bg-[#3CFF9E]/10 flex items-center justify-center border border-[#3CFF9E]/20">
                       <CreditCard className="h-4 w-4 text-[#3CFF9E]" />

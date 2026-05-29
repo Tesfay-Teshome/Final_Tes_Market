@@ -129,8 +129,8 @@ const VendorCategoryCreate = () => {
   const allCategories = [...adminCategories, ...categories];
 
   // Style tokens from Administrator Dashboard
-  const emeraldCardBase = "relative overflow-hidden rounded-3xl border border-white/[0.04] bg-[#0c1214]/60 backdrop-blur-3xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] before:absolute before:inset-0 before:bg-gradient-to-b before:from-white/[0.04] before:to-transparent before:pointer-events-none group hover:border-[#3CFF9E]/20 hover:bg-[#0c1318]/90 transition-all duration-500 transform-gpu hover:-translate-y-1 hover:shadow-[0_20px_50px_rgba(0,0,0,0.5),0_0_30px_rgba(60,255,158,0.1)]";
-  const emeraldLabel = "text-[#7A9A90] font-semibold tracking-wider uppercase text-[10px]";
+  const emeraldCardBase = "relative overflow-hidden rounded-2xl border border-white/10 bg-[#0F1720] shadow-[0_8px_32px_rgba(0,0,0,0.4)] transition-all duration-300";
+  const emeraldLabel = "text-white/60 text-[10px] font-bold uppercase tracking-[0.05em]";
   const emeraldMeta = "text-[#6A827B]";
   const emeraldKpi = "text-white font-black tracking-tight drop-shadow-sm";
   const emeraldIconWrap = "bg-gradient-to-br from-[#122A20] to-[#0A140F] border border-[#3CFF9E]/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]";
@@ -230,13 +230,13 @@ const VendorCategoryCreate = () => {
               <label className={emeraldLabel + " mb-3 block"}>
                 Category Image (Optional)
               </label>
-              <div className="relative border-2 border-dashed border-[#3CFF9E]/20 rounded-3xl p-10 text-center hover:border-[#3CFF9E]/50 hover:bg-[#3CFF9E]/05 transition-all duration-500 cursor-pointer group/upload">
+              <div className="relative border-2 border-dashed border-[#3CFF9E]/20 rounded-2xl p-10 text-center hover:border-[#3CFF9E]/50 hover:bg-[#3CFF9E]/05 transition-all duration-500 cursor-pointer group/upload">
                 {imagePreview ? (
                   <div className="relative inline-block group">
                     <img
                       src={imagePreview}
                       alt="Category preview"
-                      className="w-56 h-56 object-cover rounded-3xl mx-auto shadow-2xl border border-white/10"
+                      className="w-56 h-56 object-cover rounded-2xl mx-auto shadow-2xl border border-white/10"
                     />
                     <motion.button
                       whileHover={{ scale: 1.1 }}
@@ -283,13 +283,13 @@ const VendorCategoryCreate = () => {
                   className="w-full px-5 py-4 bg-white/[0.02] border border-white/10 rounded-2xl text-sm font-bold text-white focus:outline-none focus:border-[#3CFF9E]/50 focus:bg-white/[0.04] transition-all appearance-none cursor-pointer"
                   disabled={loading}
                 >
-                  <option value="" className="bg-[#0D1117]">None (Main Category)</option>
+                  <option value="" className="bg-[#0F1720]">None (Main Category)</option>
 
                   {/* Admin/Global Categories */}
                   {adminCategories.length > 0 && (
-                    <optgroup label="🌍 Global Categories" className="bg-[#0D1117] text-emerald-400">
+                    <optgroup label="🌍 Global Categories" className="bg-[#0F1720] text-[#3CFF9E]">
                       {adminCategories.map((category: any) => (
-                        <option key={`admin-${category.id}`} value={category.id} className="text-white">
+                        <option key={`admin-${category.id}`} value={category.id} className="text-white bg-[#0F1720]">
                           🌍 {category.name}
                         </option>
                       ))}
@@ -298,9 +298,9 @@ const VendorCategoryCreate = () => {
 
                   {/* Vendor Categories */}
                   {categories.length > 0 && (
-                    <optgroup label="👤 My Categories" className="bg-[#0D1117] text-[#3CFF9E]">
+                    <optgroup label="👤 My Categories" className="bg-[#0F1720] text-[#3CFF9E]">
                       {categories.map((category: any) => (
-                        <option key={`vendor-${category.id}`} value={category.id} className="text-white">
+                        <option key={`vendor-${category.id}`} value={category.id} className="text-white bg-[#0F1720]">
                           👤 {category.name}
                         </option>
                       ))}
@@ -329,7 +329,7 @@ const VendorCategoryCreate = () => {
                 type="button"
                 onClick={() => navigate('/vendor/categories')}
                 disabled={loading}
-                className="flex-1 h-12 px-8 bg-white/[0.02] border border-white/10 text-white text-[10px] font-bold uppercase tracking-[0.2em] rounded-full hover:bg-white/[0.08] transition-all disabled:opacity-50"
+                className="flex-1 h-14 px-8 bg-white/5 border border-white/10 text-white/70 text-[10px] font-bold uppercase tracking-widest rounded-xl hover:bg-white/10 hover:text-white transition-all disabled:opacity-50"
               >
                 Cancel
               </motion.button>
@@ -339,7 +339,7 @@ const VendorCategoryCreate = () => {
                 whileTap={{ scale: 0.95 }}
                 type="submit"
                 disabled={loading}
-                className="flex-[2] h-14 flex items-center justify-center gap-4 px-10 rounded-2xl bg-[#3CFF9E] text-black text-[12px] font-bold uppercase tracking-[0.2em] transition-all duration-300 shadow-[0_0_30px_rgba(60,255,158,0.2)] hover:bg-[#2ae88e] disabled:opacity-50"
+                className="flex-[2] h-14 flex items-center justify-center gap-4 px-10 rounded-xl bg-gradient-to-r from-[#00FF9D] to-[#3CFF9E] text-black text-[12px] font-black uppercase tracking-widest transition-all duration-300 shadow-[0_0_30px_rgba(60,255,158,0.2)] hover:opacity-90 disabled:opacity-50"
               >
                 {loading ? (
                   <>

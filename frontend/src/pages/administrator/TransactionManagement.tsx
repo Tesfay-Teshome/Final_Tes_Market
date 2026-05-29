@@ -657,7 +657,7 @@ const TransactionManagement = () => {
         <div className="absolute bottom-16 left-12 w-[520px] h-[520px] bg-[rgba(255,215,0,0.10)] rounded-full blur-3xl animate-pulse"></div>
       </div>
 
-      <div className="relative z-10 px-4 md:px-8 w-full max-w-full pb-16 sm:pb-20 pt-6">
+      <div className="relative z-10 px-4 md:px-8 w-full max-w-full pb-4 sm:pb-6 pt-6">
         <div className="max-w-7xl mx-auto space-y-8">
           {/* Header section */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mt-4">
@@ -701,7 +701,7 @@ const TransactionManagement = () => {
 
           {/* Summary Cards */}
           <motion.div
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6"
+            className="grid grid-cols-1 md:grid-cols-4 gap-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
@@ -754,19 +754,6 @@ const TransactionManagement = () => {
                     <p className="text-[10px] text-violet-100/60 mt-1 uppercase font-bold">{pendingPayouts.length} requests</p>
                   </div>
                   <Clock className="h-8 w-8 text-violet-200" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-to-br from-blue-600 to-indigo-700/95 backdrop-blur-sm text-white border-2 border-blue-500/40 shadow-2xl hover:shadow-3xl transition-all duration-300">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-blue-100 text-sm font-medium">Paid Withdrawals</p>
-                    <p className="text-2xl font-bold">${totalCompletedPayouts.toFixed(2)}</p>
-                    <p className="text-[10px] text-blue-100/60 mt-1 uppercase font-bold">{approvedPayouts.length} completed</p>
-                  </div>
-                  <CheckCircle className="h-8 w-8 text-blue-200" />
                 </div>
               </CardContent>
             </Card>

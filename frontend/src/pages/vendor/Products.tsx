@@ -112,7 +112,7 @@ const Products = () => {
   }
 
   return (
-    <div className="flex-1 relative min-h-screen text-[#E6E8EA] font-sans selection:bg-[#00FF9D]/30 pb-12 bg-[#070B0F]">
+    <div className="flex-1 relative min-h-screen text-[#E6E8EA] font-sans selection:bg-[#00FF9D]/30 pb-4 sm:pb-6 bg-[#070B0F]">
       {/* Premium Background Layer */}
       <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
         <div className="absolute inset-0 opacity-[0.015] mix-blend-overlay"
@@ -126,7 +126,7 @@ const Products = () => {
       <div className="relative z-10 px-4 sm:px-6 lg:px-8 max-w-[1700px] mx-auto pt-8">
 
         {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-4">
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -181,14 +181,14 @@ const Products = () => {
               animate={{ opacity: 1, scale: 1 }}
               className="py-24 text-center glassmorphic-card"
             >
-              <div className="h-16 w-16 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-6">
-                <AlertCircle className="h-8 w-8 text-red-500" />
+              <div className="h-16 w-16 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center mx-auto mb-6 animate-pulse">
+                <AlertCircle className="h-8 w-8 text-rose-500" />
               </div>
               <h3 className="text-xl font-bold uppercase tracking-widest text-white mb-2">Error Loading Products</h3>
               <p className="text-[#8B949E] text-sm font-medium mb-8 italic">We encountered an error while fetching your product list.</p>
               <button
                 onClick={() => window.location.reload()}
-                className="inline-flex items-center px-8 py-3.5 bg-white text-black text-[11px] font-black uppercase tracking-[0.2em] rounded-xl hover:bg-emerald-400 transition-colors"
+                className="inline-flex items-center px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all"
               >
                 <RefreshCw className="h-3.5 w-3.5 mr-2" />
                 Retry Connection
@@ -200,18 +200,18 @@ const Products = () => {
               animate={{ opacity: 1, scale: 1 }}
               className="py-24 text-center glassmorphic-card"
             >
-              <div className="w-20 h-20 bg-emerald-500/5 rounded-full flex items-center justify-center mx-auto mb-6 border border-emerald-500/10">
-                <Package className="h-10 w-10 text-[#586069]" />
+              <div className="w-20 h-20 bg-gradient-to-br from-[#122A20] to-[#0A140F] border border-[#3CFF9E]/10 flex items-center justify-center mx-auto mb-6 rounded-2xl shadow-inner">
+                <Package className="h-10 w-10 text-[#3CFF9E]" />
               </div>
               <h3 className="text-xl font-black uppercase tracking-[0.2em] text-white mb-2">Warehouse Empty</h3>
               <p className="text-[#8B949E] text-sm font-medium italic mb-8">
                 {searchTerm ? `Protocol returned zero results for "${searchTerm}"` : 'No assets identified in your storage protocols.'}
               </p>
               <motion.button
-                whileHover={{ scale: 1.05, translateY: -2 }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.02, translateY: -2 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={() => navigate('/vendor/products/new')}
-                className="px-8 py-3.5 bg-gradient-to-r from-emerald-600 to-emerald-800 text-white text-[11px] font-black uppercase tracking-widest rounded-xl shadow-xl shadow-emerald-900/40 border border-emerald-400/20 transition-all"
+                className="px-8 py-3 bg-gradient-to-r from-emerald-600 to-emerald-800 text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-xl shadow-emerald-900/40 border border-emerald-400/20 transition-all"
               >
                 <Plus className="h-4 w-4 mr-2" /> Add Initial Asset
               </motion.button>
@@ -220,7 +220,7 @@ const Products = () => {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+              className="grid grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 pb-8 justify-items-center"
             >
               {products.map((product: Product, idx: number) => (
                 <motion.div
@@ -228,72 +228,76 @@ const Products = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: idx * 0.05 }}
-                  className="group relative overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0F1720] transition-all duration-300 shadow-lg hover:border-[#00FF9D]/40 hover:-translate-y-1"
+                  className="w-full max-w-[300px] group bg-gradient-to-br from-gray-900/90 via-gray-800/90 to-gray-900/90 border border-gray-700/50 hover:border-emerald-500/50 rounded-xl shadow-lg hover:shadow-2xl hover:shadow-emerald-500/25 p-3 flex flex-col h-full transition-all duration-500 hover:scale-[1.01] hover:-translate-y-1"
                 >
-                  <div className="relative pt-[80%] overflow-hidden bg-white/[0.02]">
-                    <img
-                      src={resolveMediaUrl(product.image) || fallbackImage}
-                      alt={product.name}
-                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#0F1720] via-transparent to-transparent opacity-60" />
-
-                    {/* Status Badge */}
-                    <div className="absolute top-4 right-4 z-10">
-                      <span className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border backdrop-blur-md shadow-lg transition-all duration-300 ${product.approval_status === 'approved'
-                        ? 'bg-emerald-500/20 text-[#3CFF9E] border-emerald-500/30'
-                        : product.approval_status === 'rejected'
-                          ? 'bg-red-500/20 text-red-500 border-red-500/30'
-                          : 'bg-amber-500/10 text-amber-400 border-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.1)]'
-                        }`}>
-                        {product.approval_status === 'approved' ? 'Active' :
-                          product.approval_status === 'rejected' ? 'Declined' : 'Pending'}
-                      </span>
+                  <div className="flex-grow">
+                    <div className="mb-3 h-40 overflow-hidden rounded-lg bg-gradient-to-br from-gray-800 via-gray-700 to-gray-800 shadow-md border border-gray-600/50 group-hover:shadow-2xl transition-all duration-300">
+                      {product.image ? (
+                        <img
+                          src={resolveMediaUrl(product.image) || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=300&h=300&fit=crop'}
+                          alt={product.name}
+                          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          onError={(e) => {
+                            const el = e.target as HTMLImageElement;
+                            const fallback = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=300&h=300&fit=crop';
+                            if (el.src !== fallback) el.src = fallback;
+                          }}
+                        />
+                      ) : (
+                        <div className="h-full flex items-center justify-center">
+                          <div className="bg-gradient-to-br from-emerald-600 via-green-600 to-teal-600 p-3 rounded-xl shadow-lg">
+                            <Package className="h-10 w-10 text-emerald-200" />
+                          </div>
+                        </div>
+                      )}
                     </div>
-
-                    <div className="absolute bottom-4 left-4 z-10">
-                      <div className="px-3 py-1.5 rounded-xl bg-black/60 backdrop-blur-md border border-white/10">
-                        <p className="text-[14px] font-bold text-white">${(Number(product.price) || 0).toFixed(2)}</p>
+                    <h4 className="font-bold text-sm sm:text-base bg-gradient-to-r from-gray-100 via-emerald-200 to-green-200 bg-clip-text text-transparent mb-2 leading-tight">
+                      {product.name}
+                    </h4>
+                    <div className="space-y-1">
+                      <div className="bg-gradient-to-r from-emerald-700/90 via-green-700/90 to-teal-700/90 text-emerald-100 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-xl shadow-lg border border-emerald-600/50">
+                        <span className="text-[11px] sm:text-xs font-semibold">
+                          📦 {(product as any).category_name || (product as any).category?.name || "Uncategorized"}
+                        </span>
                       </div>
                     </div>
                   </div>
-
-                  <div className="p-6 space-y-4">
-                    <div className="min-h-[60px]">
-                      <h3 className="text-lg font-bold text-white group-hover:text-[#00FF9D] transition-colors line-clamp-2 leading-tight">
-                        {product.name}
-                      </h3>
-                    </div>
-
-                    <p className="text-[#8B949E] text-xs font-medium line-clamp-3 leading-relaxed min-h-[48px]">
-                      {product.description || 'No descriptive technical specifications provided for this asset.'}
-                    </p>
-
-                    {product.approval_status === 'rejected' && product.approval_note && (
-                      <div className="p-4 rounded-xl bg-red-500/5 border border-red-500/10">
-                        <p className="text-[9px] font-black text-red-400 uppercase tracking-widest mb-1">Feedback Report</p>
-                        <p className="text-[11px] font-medium text-red-200 line-clamp-2 italic">"{product.approval_note}"</p>
+                  
+                  <div className="mt-2 pt-2 border-t border-gray-700/50">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="bg-gradient-to-r from-yellow-600/90 via-orange-600/90 to-red-600/90 text-yellow-100 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl shadow-lg border border-yellow-500/50">
+                        <span className="text-xs font-bold">
+                          ${(Number(product.price) || 0).toFixed(2)}
+                        </span>
                       </div>
-                    )}
-
-                    <div className="flex items-center gap-2 pt-2">
+                      <div className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl shadow-lg text-xs font-bold ${
+                        product.approval_status === 'approved' 
+                          ? 'bg-gradient-to-r from-emerald-600/90 to-green-600/90 text-emerald-100 border border-emerald-500/50'
+                          : product.approval_status === 'rejected'
+                          ? 'bg-gradient-to-r from-red-600/90 to-pink-600/90 text-red-100 border border-red-500/50'
+                          : 'bg-gradient-to-r from-orange-600/90 to-yellow-600/90 text-orange-100 border border-orange-500/50'
+                      }`}>
+                        {product.approval_status === 'approved' ? '✅ Active' : product.approval_status === 'rejected' ? '❌ Declined' : '⏳ Pending'}
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-2">
                       <motion.button
                         whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
+                        whileTap={{ scale: 0.95 }}
                         onClick={() => handleEdit(product.id.toString())}
-                        className="flex-1 flex items-center justify-center gap-2 h-10 rounded-xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.08] text-white text-xs font-bold transition-all"
+                        className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-2.5 py-1.5 rounded-lg text-xs font-medium shadow-lg hover:shadow-xl transition-all duration-200"
                       >
-                        <Pencil className="h-3 w-3 text-[#8B949E]" />
-                        Configure
+                        Edit
                       </motion.button>
                       <motion.button
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => handleDelete(product.id.toString())}
-                        className="h-10 w-10 flex items-center justify-center rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all"
+                        className="flex-1 bg-gradient-to-r from-red-600 to-pink-600 text-white px-2.5 py-1.5 rounded-lg text-xs font-medium shadow-lg hover:shadow-xl transition-all duration-200"
                         disabled={deleteMutation.isPending}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        Delete
                       </motion.button>
                     </div>
                   </div>

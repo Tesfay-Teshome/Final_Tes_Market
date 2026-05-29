@@ -26,6 +26,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { adminAPI } from '@/services/api';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 
 
 interface PayoutRequest {
@@ -327,67 +328,57 @@ const Payouts = () => {
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-            <motion.div
-              whileHover={{ scale: 1.03, y: -2 }}
-              className="bg-gradient-to-br from-yellow-500 to-amber-600 rounded-2xl p-4 sm:p-6 shadow-xl shadow-yellow-900/30 border border-yellow-400/20 text-white cursor-pointer"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs sm:text-sm font-semibold text-yellow-100 truncate">Pending</p>
-                  <p className="text-2xl sm:text-3xl font-bold mt-1">{payoutData?.pending_count || 0}</p>
+          <motion.div
+            className="grid grid-cols-1 md:grid-cols-4 gap-6"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <Card className="bg-gradient-to-br from-emerald-600 to-emerald-700/95 backdrop-blur-sm text-white border-2 border-emerald-500/40 shadow-2xl hover:shadow-3xl transition-all duration-300">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-emerald-100 text-sm font-medium">Completed</p>
+                    <p className="text-2xl font-bold">{payoutData?.completed_count || 0}</p>
+                  </div>
+                  <CreditCard className="h-8 w-8 text-emerald-200" />
                 </div>
-                <div className="p-2 sm:p-3 rounded-xl bg-white/20 flex-shrink-0 ml-3">
-                  <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+              </CardContent>
+            </Card>
+            <Card className="bg-gradient-to-br from-green-600 to-green-700/95 backdrop-blur-sm text-white border-2 border-green-500/40 shadow-2xl hover:shadow-3xl transition-all duration-300">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-green-100 text-sm font-medium">Approved</p>
+                    <p className="text-2xl font-bold">{payoutData?.approved_count || 0}</p>
+                  </div>
+                  <CheckCircle className="h-8 w-8 text-green-200" />
                 </div>
-              </div>
-            </motion.div>
-
-            <motion.div
-              whileHover={{ scale: 1.03, y: -2 }}
-              className="bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-2xl p-4 sm:p-6 shadow-xl shadow-emerald-900/30 border border-emerald-400/20 text-white cursor-pointer"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs sm:text-sm font-semibold text-emerald-100 truncate">Approved</p>
-                  <p className="text-2xl sm:text-3xl font-bold mt-1">{payoutData?.approved_count || 0}</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-gradient-to-br from-orange-600 to-red-600/95 backdrop-blur-sm text-white border-2 border-orange-500/40 shadow-2xl hover:shadow-3xl transition-all duration-300">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-orange-100 text-sm font-medium">Pending</p>
+                    <p className="text-2xl font-bold">{payoutData?.pending_count || 0}</p>
+                  </div>
+                  <Clock className="h-8 w-8 text-orange-200" />
                 </div>
-                <div className="p-2 sm:p-3 rounded-xl bg-white/20 flex-shrink-0 ml-3">
-                  <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+              </CardContent>
+            </Card>
+            <Card className="bg-gradient-to-br from-violet-600 to-purple-700/95 backdrop-blur-sm text-white border-2 border-violet-500/40 shadow-2xl hover:shadow-3xl transition-all duration-300">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-violet-100 text-sm font-medium">Total</p>
+                    <p className="text-2xl font-bold">{payoutData?.total_count || 0}</p>
+                  </div>
+                  <DollarSign className="h-8 w-8 text-violet-200" />
                 </div>
-              </div>
-            </motion.div>
-
-            <motion.div
-              whileHover={{ scale: 1.03, y: -2 }}
-              className="bg-gradient-to-br from-blue-600 to-cyan-600 rounded-2xl p-4 sm:p-6 shadow-xl shadow-blue-900/30 border border-blue-400/20 text-white cursor-pointer"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs sm:text-sm font-semibold text-blue-100 truncate">Completed</p>
-                  <p className="text-2xl sm:text-3xl font-bold mt-1">{payoutData?.completed_count || 0}</p>
-                </div>
-                <div className="p-2 sm:p-3 rounded-xl bg-white/20 flex-shrink-0 ml-3">
-                  <CreditCard className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
-                </div>
-              </div>
-            </motion.div>
-
-            <motion.div
-              whileHover={{ scale: 1.03, y: -2 }}
-              className="bg-gradient-to-br from-violet-600 to-purple-700 rounded-2xl p-4 sm:p-6 shadow-xl shadow-purple-900/30 border border-violet-400/20 text-white cursor-pointer"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs sm:text-sm font-semibold text-violet-100 truncate">Total</p>
-                  <p className="text-2xl sm:text-3xl font-bold mt-1">{payoutData?.total_count || 0}</p>
-                </div>
-                <div className="p-2 sm:p-3 rounded-xl bg-white/20 flex-shrink-0 ml-3">
-                  <DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
-                </div>
-              </div>
-            </motion.div>
-          </div>
+              </CardContent>
+            </Card>
+          </motion.div>
 
           {/* Filters */}
           <div className="bg-[#0F1720] border border-white/[0.08] rounded-2xl shadow-xl p-4 sm:p-6">

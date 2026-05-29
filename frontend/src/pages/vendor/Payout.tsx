@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { vendorAPI } from '@/services/api';
 import { useToast } from '@/components/ui/use-toast';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   DollarSign,
   CreditCard,
@@ -161,14 +162,27 @@ const Payout = () => {
 
   if (earningsLoading || paymentMethodLoading) {
     return (
-      <div className="min-h-screen bg-[#070B0F] flex items-center justify-center">
-        <Loader2 className="h-12 w-12 text-emerald-500 animate-spin" />
+      <div className="min-h-screen text-[#E6E8EA] font-sans selection:bg-[#00FF9D]/30 bg-[#070B0F] flex items-center justify-center p-3 sm:p-6 relative overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+          <div className="absolute inset-0 opacity-[0.015] mix-blend-overlay"
+            style={{ backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.4) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+          <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-emerald-500/5 rounded-full blur-[120px] animate-pulse" />
+        </div>
+        <div className="text-center relative z-10">
+          <div className="h-20 w-20 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-8 animate-pulse">
+            <Loader2 className="h-8 w-8 text-[#00FF9D] animate-spin" />
+          </div>
+          <h2 className="text-xl font-bold text-white uppercase tracking-widest">
+            Loading Payout Vault...
+          </h2>
+          <p className="text-[10px] font-black text-[#8B949E] uppercase tracking-[0.2em] mt-3">Establishing secure connection protocols</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 relative min-h-screen text-[#E6E8EA] font-sans selection:bg-[#00FF9D]/30 pb-12 bg-[#070B0F]">
+    <div className="flex-1 relative min-h-screen text-[#E6E8EA] font-sans selection:bg-[#00FF9D]/30 pb-4 sm:pb-6 bg-[#070B0F]">
       {/* Premium Background */}
       <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
         <div className="absolute inset-0 opacity-[0.015] mix-blend-overlay"
@@ -178,7 +192,7 @@ const Payout = () => {
 
       <div className="relative z-10 px-4 sm:px-6 lg:px-8 max-w-[1700px] mx-auto pt-8">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-4">
           <div className="space-y-1">
             <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent leading-relaxed py-2">Payouts</h1>
             <p className="text-gray-400 mt-1 font-medium flex items-center gap-2">
@@ -197,33 +211,64 @@ const Payout = () => {
         </div>
 
         {/* Balance Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-10">
-          {[
-            { label: 'Available Balance', value: earningsData?.available_balance, icon: Wallet, bg: 'bg-emerald-600' },
-            { label: 'Pending Settlement', value: earningsData?.pending_balance, icon: Clock, bg: 'bg-orange-500' },
-            { label: 'Total Earnings', value: earningsData?.total_earnings, icon: DollarSign, bg: 'bg-blue-600' },
-            { label: 'Total Withdrawn', value: earningsData?.total_withdrawn, icon: Download, bg: 'bg-purple-600' }
-          ].map((card, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
-              className={`rounded-2xl ${card.bg} p-5 relative overflow-hidden group hover:scale-[1.02] transition-all duration-300 shadow-xl border-none`}
-            >
-              <div className="flex justify-between items-start mb-2">
-                <span className="text-white/80 text-[10px] font-bold uppercase tracking-wider">{card.label}</span>
-                <div className="h-8 w-8 rounded-lg bg-white/20 flex items-center justify-center shadow-inner">
-                  <card.icon className="h-4 w-4 text-white" />
+        <motion.div
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-4"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          <Card className="bg-gradient-to-br from-emerald-600 to-emerald-700/95 backdrop-blur-sm text-white border-2 border-emerald-500/40 shadow-2xl hover:shadow-3xl transition-all duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-emerald-100 text-sm font-medium">Available Balance</p>
+                  <p className="text-2xl font-bold">${earningsData?.available_balance ? Number(earningsData.available_balance).toFixed(2) : '0.00'}</p>
+                  <p className="text-[10px] text-emerald-100/60 mt-1 uppercase font-bold">Ready to withdraw</p>
                 </div>
+                <Wallet className="h-8 w-8 text-emerald-200" />
               </div>
-              <div className="text-[28px] font-extrabold text-white tracking-tight mb-2">${(card.value || 0).toLocaleString()}</div>
-              <div className="flex items-center gap-1.5 text-[9px] font-bold text-white/60">
-                <ArrowUpRight className="h-3 w-3" /> Live Protocol
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-orange-600 to-red-600/95 backdrop-blur-sm text-white border-2 border-orange-500/40 shadow-2xl hover:shadow-3xl transition-all duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-orange-100 text-sm font-medium">Pending Settlement</p>
+                  <p className="text-2xl font-bold">${earningsData?.pending_balance ? Number(earningsData.pending_balance).toFixed(2) : '0.00'}</p>
+                  <p className="text-[10px] text-orange-100/60 mt-1 uppercase font-bold">In pending requests</p>
+                </div>
+                <Clock className="h-8 w-8 text-orange-200" />
               </div>
-            </motion.div>
-          ))}
-        </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-green-600 to-green-700/95 backdrop-blur-sm text-white border-2 border-green-500/40 shadow-2xl hover:shadow-3xl transition-all duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-green-100 text-sm font-medium">Total Earnings</p>
+                  <p className="text-2xl font-bold">${earningsData?.total_earnings ? Number(earningsData.total_earnings).toFixed(2) : '0.00'}</p>
+                  <p className="text-[10px] text-green-100/60 mt-1 uppercase font-bold">Lifetime revenue</p>
+                </div>
+                <DollarSign className="h-8 w-8 text-green-200" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-violet-600 to-purple-700/95 backdrop-blur-sm text-white border-2 border-violet-500/40 shadow-2xl hover:shadow-3xl transition-all duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-violet-100 text-sm font-medium">Total Withdrawn</p>
+                  <p className="text-2xl font-bold">${earningsData?.total_withdrawn ? Number(earningsData.total_withdrawn).toFixed(2) : '0.00'}</p>
+                  <p className="text-[10px] text-violet-100/60 mt-1 uppercase font-bold">Paid to you</p>
+                </div>
+                <Download className="h-8 w-8 text-violet-200" />
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           {/* Payment Method Vault */}
@@ -332,7 +377,7 @@ const Payout = () => {
               initial={{ opacity: 0, scale: 0.95, y: 30 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 30 }}
-              className="w-full max-w-2xl bg-[#0D1117] border border-white/10 rounded-[32px] overflow-hidden shadow-2xl p-8 max-h-[90vh] overflow-y-auto custom-scrollbar"
+              className="w-full max-w-2xl bg-[#0F1720] border border-white/10 rounded-2xl overflow-hidden shadow-2xl p-8 max-h-[90vh] overflow-y-auto custom-scrollbar"
             >
               <div className="flex items-center justify-between mb-8">
                 <div>
@@ -369,7 +414,7 @@ const Payout = () => {
                 </div>
 
                 {/* Payment Method Selection */}
-                <div className="space-y-4 p-6 bg-white/[0.02] border border-white/5 rounded-3xl">
+                <div className="space-y-4 p-6 bg-white/[0.02] border border-white/5 rounded-2xl">
                   <div className="flex items-center gap-3 mb-2">
                     <div className="h-8 w-8 rounded-lg bg-[#3CFF9E]/10 flex items-center justify-center border border-[#3CFF9E]/20">
                       <CreditCard className="h-4 w-4 text-[#3CFF9E]" />
@@ -531,7 +576,7 @@ const Payout = () => {
                 <div className="flex gap-4">
                   <button
                     onClick={() => setShowRequestModal(false)}
-                    className="flex-1 h-14 rounded-full bg-white/5 border border-white/10 text-white/50 hover:bg-white/10 hover:text-white text-[10px] font-black uppercase tracking-widest transition-all"
+                    className="flex-1 h-14 rounded-xl bg-white/5 border border-white/10 text-white/50 hover:bg-white/10 hover:text-white text-[10px] font-black uppercase tracking-widest transition-all"
                   >
                     Cancel
                   </button>
@@ -569,7 +614,7 @@ const Payout = () => {
               initial={{ opacity: 0, scale: 0.95, y: 30 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 30 }}
-              className="w-full max-w-xl bg-[#0D1117] border border-white/10 rounded-[32px] overflow-hidden shadow-2xl p-8"
+              className="w-full max-w-xl bg-[#0F1720] border border-white/10 rounded-2xl overflow-hidden shadow-2xl p-8"
             >
               <div className="flex items-center justify-between mb-8">
                 <h3 className="text-xl font-bold text-white uppercase tracking-wider">Configure Payout Method</h3>

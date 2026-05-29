@@ -59,7 +59,7 @@ interface ProductEarning {
   commission_paid: number;
 }
 
-const darkCard = "relative overflow-hidden rounded-3xl border border-white/[0.04] bg-[#0c1214]/70 backdrop-blur-3xl shadow-[0_8px_32px_rgba(0,0,0,0.4)]";
+const darkCard = "relative overflow-hidden rounded-2xl border border-white/[0.04] bg-[#0F1720]/70 backdrop-blur-3xl shadow-[0_8px_32px_rgba(0,0,0,0.4)]";
 
 const EarningsBreakdown = () => {
   const [timeRange, setTimeRange] = useState('last_6_months');
@@ -115,32 +115,52 @@ const EarningsBreakdown = () => {
         ? `+${earnings.earnings_growth.toFixed(1)}% from last period`
         : `${earnings?.earnings_growth?.toFixed(1) || '0'}% from last period`,
       icon: DollarSign,
+      borderClass: 'border-2 border-emerald-500/50',
+      iconWrapClass: 'bg-gradient-to-br from-[#122A20] to-[#0A140F] border border-[#3CFF9E]/10',
+      iconColor: 'text-[#3CFF9E] drop-shadow-[0_0_8px_rgba(60,255,158,0.5)]',
+      badgeClass: 'text-[#00FF9D] bg-[#00FF9D]/10 border border-[#00FF9D]/20',
+      sparklineStroke: '#00FF9D',
+      sparklinePath: 'M0,35 L20,25 L40,30 L60,15 L80,25 L100,10',
       trend: (earnings?.earnings_growth || 0) > 0,
-      bg: 'bg-emerald-600',
     },
     {
       title: 'Platform Fees',
       value: `$${earnings?.platform_fees?.toFixed(2) || '0.00'}`,
       sub: `${earnings?.commission_rate || 0}% commission rate`,
       icon: Percent,
+      borderClass: 'border border-white/10',
+      iconWrapClass: 'bg-amber-500/10 border border-amber-500/20',
+      iconColor: 'text-amber-500',
+      badgeClass: 'text-amber-500 bg-amber-500/10 border border-amber-500/20',
+      sparklineStroke: '#ffa500',
+      sparklinePath: 'M0,30 L25,35 L50,20 L75,28 L100,15',
       trend: null,
-      bg: 'bg-orange-500',
     },
     {
       title: 'Net Earnings',
       value: `$${earnings?.net_earnings?.toFixed(2) || '0.00'}`,
       sub: 'After platform fees',
       icon: TrendingUp,
+      borderClass: 'border border-white/10',
+      iconWrapClass: 'bg-blue-500/10 border border-blue-500/20',
+      iconColor: 'text-blue-400',
+      badgeClass: 'text-blue-400 bg-blue-500/10 border border-blue-500/20',
+      sparklineStroke: '#00D1FF',
+      sparklinePath: 'M0,35 L20,30 L40,38 L60,20 L80,25 L100,15',
       trend: true,
-      bg: 'bg-blue-600',
     },
     {
       title: 'Pending Payouts',
       value: `$${earnings?.pending_payouts?.toFixed(2) || '0.00'}`,
       sub: `Next: ${earnings?.next_payout_date ? format(new Date(earnings.next_payout_date), 'MMM dd, yyyy') : 'TBD'}`,
       icon: Clock,
+      borderClass: 'border border-white/10',
+      iconWrapClass: 'bg-purple-500/10 border border-purple-500/20',
+      iconColor: 'text-purple-400',
+      badgeClass: 'text-purple-400 bg-purple-500/10 border border-purple-500/20',
+      sparklineStroke: '#BF5AF2',
+      sparklinePath: 'M0,32 L20,38 L40,22 L60,30 L80,18 L100,25',
       trend: null,
-      bg: 'bg-purple-600',
     },
   ];
 
@@ -201,26 +221,31 @@ const EarningsBreakdown = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.08 }}
-              className={`relative overflow-hidden rounded-2xl ${kpi.bg} p-5 cursor-pointer group hover:scale-[1.02] transition-all duration-300 shadow-xl border-none`}
+              className={`relative overflow-hidden rounded-2xl ${kpi.borderClass} bg-[#0F1720] p-5 cursor-pointer group hover:bg-[#0F1720]/90 transition-all duration-300 shadow-xl`}
             >
-              <div className="flex justify-between items-start mb-2">
-                <span className="text-white/80 text-[10px] font-bold uppercase tracking-wider">{kpi.title}</span>
-                <div className="h-8 w-8 rounded-lg bg-white/20 flex items-center justify-center shadow-inner">
-                  <kpi.icon className="h-4 w-4 text-white" />
+              <div className="flex justify-between items-start mb-2 relative z-10">
+                <span className="text-white/60 text-[10px] font-bold uppercase tracking-[0.05em]">{kpi.title}</span>
+                <div className={`h-8 w-8 rounded-lg flex items-center justify-center shadow-inner ${kpi.iconWrapClass}`}>
+                  <kpi.icon className={`h-4 w-4 ${kpi.iconColor}`} />
                 </div>
               </div>
-              <div className="space-y-1">
-                <h3 className="text-[32px] font-black text-white tracking-tight leading-tight">{kpi.value}</h3>
+              <div className="space-y-1 relative z-10">
+                <h3 className="text-2xl font-black text-white tracking-tight leading-none mb-3">{kpi.value}</h3>
                 <div className="flex items-center justify-between gap-2 mt-1">
-                  <p className="text-[10px] font-bold text-white/70 tracking-tight truncate">
+                  <p className="text-[10px] font-bold text-white/50 tracking-tight truncate">
                     {kpi.sub}
                   </p>
                   {kpi.trend !== null && (
-                    <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-white/20 bg-white/10 text-white text-[9px] font-bold">
+                    <div className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded border text-[9px] font-bold ${kpi.badgeClass}`}>
                       {kpi.trend ? <TrendingUp className="h-2.5 w-2.5" /> : <TrendingDown className="h-2.5 w-2.5" />}
                     </div>
                   )}
                 </div>
+              </div>
+              <div className="h-8 w-full mt-2 opacity-40 group-hover:opacity-60 transition-opacity relative z-10">
+                <svg viewBox="0 0 100 40" preserveAspectRatio="none" className="w-full h-full">
+                  <path d={kpi.sparklinePath} fill="none" stroke={kpi.sparklineStroke} strokeWidth="2" vectorEffect="non-scaling-stroke" />
+                </svg>
               </div>
             </motion.div>
           ))}

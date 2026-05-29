@@ -19,7 +19,7 @@ interface Category {
 }
 
 // Style tokens from Administrator Dashboard
-const emeraldCardBase = "relative overflow-hidden rounded-3xl border border-white/[0.04] bg-[#0c1214]/60 backdrop-blur-3xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] before:absolute before:inset-0 before:bg-gradient-to-b before:from-white/[0.04] before:to-transparent before:pointer-events-none group hover:border-[#3CFF9E]/20 hover:bg-[#0c1318]/90 transition-all duration-500 transform-gpu hover:-translate-y-1 hover:shadow-[0_20px_50px_rgba(0,0,0,0.5),0_0_30px_rgba(60,255,158,0.1)]";
+const emeraldCardBase = "relative overflow-hidden rounded-2xl border border-white/[0.04] bg-[#0F1720]/80 backdrop-blur-3xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] before:absolute before:inset-0 before:bg-gradient-to-b before:from-white/[0.04] before:to-transparent before:pointer-events-none group hover:border-[#3CFF9E]/20 hover:bg-[#0F1720]/90 transition-all duration-500 transform-gpu hover:-translate-y-1 hover:shadow-[0_20px_50px_rgba(0,0,0,0.5),0_0_30px_rgba(60,255,158,0.1)]";
 const emeraldLabel = "text-[#7A9A90] font-semibold tracking-wider uppercase text-[10px]";
 const emeraldMeta = "text-[#6A827B]";
 const emeraldKpi = "text-white font-black tracking-tight drop-shadow-sm";
@@ -126,7 +126,7 @@ const VendorCategories = () => {
   const filteredCategories = getFilteredCategories();
 
   return (
-    <div className="flex-1 relative min-h-screen text-[#E6E8EA] font-sans selection:bg-[#00FF9D]/30 pb-12 bg-[#070B0F]">
+    <div className="flex-1 relative min-h-screen text-[#E6E8EA] font-sans selection:bg-[#00FF9D]/30 pb-4 sm:pb-6 bg-[#070B0F]">
       {/* Premium Background Layer */}
       <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
         {/* Subtle grid and noise texture overlay for high-end feel */}
@@ -136,7 +136,7 @@ const VendorCategories = () => {
 
       <div className="relative z-10 px-4 sm:px-6 lg:px-8 max-w-[1700px] mx-auto pt-8">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-4">
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-3">
             <div className="flex items-center gap-4 mb-1">
               <div className={`h-12 w-12 rounded-2xl ${emeraldIconWrap} flex items-center justify-center shadow-[0_0_20px_rgba(60,255,158,0.15)]`}>
@@ -162,7 +162,7 @@ const VendorCategories = () => {
         </div>
 
         {/* Filters */}
-        <div className={`${emeraldCardBase} p-4 sm:p-6 mb-8 before:from-[#3CFF9E]/05`}>
+        <div className={`${emeraldCardBase} p-4 sm:p-6 mb-4 before:from-[#3CFF9E]/05`}>
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1 relative group">
               <input
@@ -213,7 +213,7 @@ const VendorCategories = () => {
             {filterType !== 'all' && (
               <button
                 onClick={() => setFilterType('all')}
-                className="px-8 h-11 bg-white/[0.04] text-white text-[10px] font-black uppercase tracking-widest rounded-full hover:bg-white/[0.08] transition-all border border-white/10"
+                className="px-8 h-11 bg-white/[0.04] text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-white/[0.08] transition-all border border-white/10"
               >
                 Clear Filters
               </button>

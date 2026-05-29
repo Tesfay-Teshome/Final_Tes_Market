@@ -88,7 +88,7 @@ const ManageCategories = () => {
       formData.append('name', data.name);
       if (data.description) formData.append('description', data.description);
       if (data.parent_id) formData.append('parent_id', data.parent_id);
-      return adminAPI.updateCategory(id, formData);
+      return categoriesAPI.update(id, formData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-categories'] });
@@ -109,7 +109,7 @@ const ManageCategories = () => {
   });
 
   const deleteCategoryMutation = useMutation({
-    mutationFn: (id: string) => adminAPI.deleteCategory(id),
+    mutationFn: (id: string) => categoriesAPI.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-categories'] });
       toast({
@@ -167,13 +167,13 @@ const ManageCategories = () => {
   }
 
   return (
-    <div className="flex-1 space-y-4 relative min-h-screen bg-gradient-to-br from-[#0B0F14] via-[#0D1219] to-[#0F141B] text-[#E6EDF3] pt-1 sm:pt-4 pb-16 sm:pb-20">
+    <div className="flex-1 space-y-4 relative min-h-screen bg-gradient-to-br from-[#0B0F14] via-[#0D1219] to-[#0F141B] text-[#E6EDF3] pt-1 sm:pt-4 pb-4 sm:pb-6">
       <div className="absolute inset-0 pointer-events-none opacity-40">
         <div className="absolute top-16 right-10 w-[520px] h-[520px] bg-[rgba(60,179,113,0.16)] rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute bottom-16 left-12 w-[520px] h-[520px] bg-[rgba(255,215,0,0.10)] rounded-full blur-3xl animate-pulse"></div>
       </div>
 
-      <div className="relative z-10 px-4 md:px-8 w-full max-w-full pb-16 sm:pb-20">
+      <div className="relative z-10 px-4 md:px-8 w-full max-w-full pb-4 sm:pb-6">
         <motion.div
           className="space-y-6"
           initial={{ opacity: 0, y: 20 }}

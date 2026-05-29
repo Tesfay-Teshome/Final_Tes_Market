@@ -30,7 +30,7 @@ interface Notification {
   admin_notified_of_confirmation: boolean;
 }
 
-const darkCard = "relative overflow-hidden rounded-3xl border border-white/[0.04] bg-[#0c1214]/70 backdrop-blur-3xl shadow-[0_8px_32px_rgba(0,0,0,0.4)]";
+const darkCard = "relative overflow-hidden rounded-2xl border border-white/[0.04] bg-[#0c1214]/70 backdrop-blur-3xl shadow-[0_8px_32px_rgba(0,0,0,0.4)]";
 
 const Notifications = () => {
   const { toast } = useToast();
@@ -112,7 +112,7 @@ const Notifications = () => {
   ).length || 0;
 
   return (
-    <div className="flex-1 relative min-h-screen text-[#E6E8EA] font-sans selection:bg-[#00FF9D]/30 pb-12 bg-[#070B0F]">
+    <div className="flex-1 relative min-h-screen text-[#E6E8EA] font-sans selection:bg-[#00FF9D]/30 pb-4 sm:pb-6 bg-[#070B0F]">
       {/* Premium Background Layer */}
       <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
         <div className="absolute inset-0 opacity-[0.015] mix-blend-overlay"
@@ -123,7 +123,7 @@ const Notifications = () => {
 
       <div className="relative z-10 px-4 sm:px-6 lg:px-8 max-w-[1700px] mx-auto pt-8">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-4">
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-2">
             <div className="flex items-center gap-3 mb-1">
               <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-[#122A20] to-[#0A140F] border border-[#3CFF9E]/20 flex items-center justify-center shadow-lg">
@@ -170,7 +170,7 @@ const Notifications = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.05 }}
-                className={`group relative overflow-hidden rounded-3xl border transition-all duration-300 p-6 ${!notification.is_read
+                className={`group relative overflow-hidden rounded-2xl border transition-all duration-300 p-6 ${!notification.is_read
                   ? 'border-[#3CFF9E]/20 bg-[#0c1214]/70 backdrop-blur-3xl shadow-[0_0_30px_rgba(60,255,158,0.05)]'
                   : 'border-white/[0.04] bg-[#0c1214]/50 backdrop-blur-xl'
                   } ${notification.requires_confirmation && !notification.confirmed_by_vendor
@@ -258,7 +258,7 @@ const Notifications = () => {
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="py-24 text-center rounded-3xl border border-white/[0.04] bg-[#0c1214]/50 backdrop-blur-xl"
+              className="py-24 text-center rounded-2xl border border-white/[0.04] bg-[#0c1214]/50 backdrop-blur-xl"
             >
               <div className="w-20 h-20 bg-white/[0.03] rounded-full flex items-center justify-center mx-auto mb-6 border border-white/[0.05]">
                 <Bell className="h-10 w-10 text-[#586069]" />
@@ -284,7 +284,7 @@ const Notifications = () => {
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="bg-[#0F1720] border border-white/10 rounded-3xl max-w-lg w-full shadow-[0_0_100px_rgba(0,0,0,0.5)] p-8"
+              className="bg-[#0F1720] border border-white/10 rounded-2xl max-w-lg w-full shadow-[0_0_100px_rgba(0,0,0,0.5)] p-8"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-6">

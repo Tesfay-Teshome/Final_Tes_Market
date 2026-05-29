@@ -435,16 +435,16 @@ const ManageProducts: React.FC = () => {
   }, [products, activeTab, filteredProducts]);
   
   return (
-    <div className="flex-1 space-y-4 relative min-h-screen bg-gradient-to-br from-[#0B0F14] via-[#0D1219] to-[#0F141B] text-[#E6EDF3] pt-1 sm:pt-4 pb-16 sm:pb-20">
+    <div className="flex-1 space-y-4 relative min-h-screen bg-gradient-to-br from-[#0B0F14] via-[#0D1219] to-[#0F141B] text-[#E6EDF3] pt-1 sm:pt-4 pb-4 sm:pb-6">
       {/* Subtle animated background elements */}
       <div className="absolute inset-0 pointer-events-none opacity-40">
         <div className="absolute top-16 right-10 w-[520px] h-[520px] bg-[rgba(60,179,113,0.16)] rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute bottom-16 left-12 w-[520px] h-[520px] bg-[rgba(255,215,0,0.10)] rounded-full blur-3xl animate-pulse"></div>
       </div>
 
-      <div className="relative z-10 px-4 md:px-8 w-full max-w-full pb-16 sm:pb-20">
+      <div className="relative z-10 px-4 md:px-8 w-full max-w-full pb-4 sm:pb-6">
         <motion.div 
-          className="space-y-6 pb-16 sm:pb-20"
+          className="space-y-6 pb-4 sm:pb-6"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
@@ -576,7 +576,7 @@ const ManageProducts: React.FC = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.4 }}
-            className="bg-gradient-to-br from-gray-900/90 via-gray-800/90 to-gray-900/90 rounded-2xl shadow-xl border border-gray-700/50 p-8 pb-16 mb-16"
+            className="bg-gradient-to-br from-gray-900/90 via-gray-800/90 to-gray-900/90 rounded-2xl shadow-xl border border-gray-700/50 p-8 pb-4 mb-4"
           >
             <div className="mb-8">
               <div className="flex items-center space-x-3 mb-4">

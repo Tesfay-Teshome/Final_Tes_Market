@@ -46,7 +46,7 @@ type ProfileFormData = z.infer<typeof profileSchema>;
 type NotificationFormData = z.infer<typeof notificationSchema>;
 
 // Design tokens matching Admin Dashboard
-const darkCard = "relative overflow-hidden rounded-3xl border border-white/[0.04] bg-[#0c1214]/70 backdrop-blur-3xl shadow-[0_8px_32px_rgba(0,0,0,0.4)]";
+const darkCard = "relative overflow-hidden rounded-2xl border border-white/[0.04] bg-[#0c1214]/70 backdrop-blur-3xl shadow-[0_8px_32px_rgba(0,0,0,0.4)]";
 const inputClass = "w-full px-4 py-3 bg-white/[0.03] border border-white/10 rounded-xl text-sm font-medium text-white placeholder-[#586069] focus:outline-none focus:border-[#3CFF9E]/50 transition-all";
 const labelClass = "block text-[10px] font-black text-[#7A9A90] uppercase tracking-widest mb-2";
 
@@ -128,7 +128,7 @@ const VendorSettings: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 relative min-h-screen text-[#E6E8EA] font-sans selection:bg-[#00FF9D]/30 pb-12 bg-[#070B0F]">
+    <div className="flex-1 relative min-h-screen text-[#E6E8EA] font-sans selection:bg-[#00FF9D]/30 pb-4 sm:pb-6 bg-[#070B0F]">
       {/* Premium Background Layer */}
       <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
         <div className="absolute inset-0 opacity-[0.015] mix-blend-overlay"
@@ -139,7 +139,7 @@ const VendorSettings: React.FC = () => {
 
       <div className="relative z-10 px-4 sm:px-6 lg:px-8 max-w-[1700px] mx-auto pt-8">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-4">
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-2">
             <div className="flex items-center gap-3 mb-1">
               <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-[#122A20] to-[#0A140F] border border-[#3CFF9E]/20 flex items-center justify-center shadow-lg">

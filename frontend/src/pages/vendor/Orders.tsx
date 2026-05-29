@@ -277,15 +277,20 @@ const VendorOrders = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-emerald-100 flex items-center justify-center p-3 sm:p-6">
-        <div className="text-center">
-          <div className="bg-gradient-to-r from-emerald-700 via-green-800 to-emerald-900 rounded-full p-4 w-20 h-20 mx-auto mb-4 flex items-center justify-center shadow-2xl">
-            <Loader2 className="h-8 w-8 text-white animate-spin" />
+      <div className="min-h-screen text-[#E6E8EA] font-sans selection:bg-[#00FF9D]/30 bg-[#070B0F] flex items-center justify-center p-3 sm:p-6 relative overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+          <div className="absolute inset-0 opacity-[0.015] mix-blend-overlay"
+            style={{ backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.4) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+          <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-emerald-500/5 rounded-full blur-[120px] animate-pulse" />
+        </div>
+        <div className="text-center relative z-10">
+          <div className="h-20 w-20 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-8 animate-pulse">
+            <Loader2 className="h-8 w-8 text-[#00FF9D] animate-spin" />
           </div>
-          <h2 className="text-xl font-semibold bg-gradient-to-r from-emerald-700 via-green-800 to-emerald-900 bg-clip-text text-transparent">
+          <h2 className="text-xl font-bold text-white uppercase tracking-widest">
             Loading your orders...
           </h2>
-          <p className="text-gray-600 mt-2">Please wait while we fetch your order data</p>
+          <p className="text-[10px] font-black text-[#8B949E] uppercase tracking-[0.2em] mt-3">Synthesizing order stream data</p>
         </div>
       </div>
     );
@@ -293,23 +298,25 @@ const VendorOrders = () => {
 
   if (isError) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-emerald-100 flex items-center justify-center p-6">
-        <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-2xl border border-gray-200/50 p-8">
-          <div className="text-center">
-            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4">
-              <AlertCircle className="h-8 w-8 text-red-600" />
-            </div>
-            <h3 className="text-xl font-bold bg-gradient-to-r from-red-600 to-rose-600 bg-clip-text text-transparent mb-2">
-              Something went wrong
-            </h3>
-            <p className="text-gray-600 mb-6">Error loading orders. Please try again later.</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
-            >
-              Try Again
-            </button>
+      <div className="min-h-screen text-[#E6E8EA] font-sans selection:bg-[#00FF9D]/30 bg-[#070B0F] flex items-center justify-center p-6 relative overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+          <div className="absolute inset-0 opacity-[0.015] mix-blend-overlay"
+            style={{ backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.4) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+        </div>
+        <div className="max-w-2xl mx-auto bg-[#0F1720] rounded-2xl shadow-2xl border border-white/10 p-8 relative z-10 text-center">
+          <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-2xl bg-rose-500/10 border border-rose-500/20 mb-6 animate-pulse">
+            <AlertCircle className="h-8 w-8 text-rose-500" />
           </div>
+          <h3 className="text-xl font-bold bg-gradient-to-r from-rose-400 to-red-500 bg-clip-text text-transparent uppercase tracking-wider mb-2">
+            Something went wrong
+          </h3>
+          <p className="text-[#8B949E] text-xs mb-6">Error loading orders. Please check your network connection or try again.</p>
+          <button
+            onClick={() => refetch()}
+            className="bg-gradient-to-r from-rose-600 to-red-800 hover:from-rose-500 hover:to-red-700 text-white px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest border border-rose-400/20 shadow-xl transition-all duration-300"
+          >
+            Try Again
+          </button>
         </div>
       </div>
     );
@@ -318,7 +325,7 @@ const VendorOrders = () => {
   const orders = ordersData || [];
 
   return (
-    <div className="flex-1 relative min-h-screen text-[#E6E8EA] font-sans selection:bg-[#00FF9D]/30 pb-12 bg-[#070B0F]">
+    <div className="flex-1 relative min-h-screen text-[#E6E8EA] font-sans selection:bg-[#00FF9D]/30 pb-4 sm:pb-6 bg-[#070B0F]">
       {/* Premium Background Layer */}
       <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
         <div className="absolute inset-0 opacity-[0.015] mix-blend-overlay"
@@ -332,7 +339,7 @@ const VendorOrders = () => {
       <div className="relative z-10 px-4 sm:px-6 lg:px-8 max-w-[1700px] mx-auto pt-8">
 
         {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-4">
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -371,7 +378,7 @@ const VendorOrders = () => {
         </div>
 
         {/* Intelligence Filters Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -452,8 +459,8 @@ const VendorOrders = () => {
               animate={{ opacity: 1, scale: 1 }}
               className="py-24 text-center glassmorphic-card"
             >
-              <div className="w-20 h-20 bg-emerald-500/5 rounded-full flex items-center justify-center mx-auto mb-6 border border-emerald-500/10">
-                <Package className="h-10 w-10 text-[#586069]" />
+              <div className="w-20 h-20 bg-gradient-to-br from-[#122A20] to-[#0A140F] border border-[#3CFF9E]/10 flex items-center justify-center mx-auto mb-6 rounded-2xl shadow-inner">
+                <Package className="h-10 w-10 text-[#3CFF9E]" />
               </div>
               <h3 className="text-xl font-black uppercase tracking-[0.2em] text-white mb-2">No Orders Found</h3>
               <p className="text-[#8B949E] text-sm font-medium italic">No orders match the current filter criteria.</p>
@@ -701,10 +708,10 @@ const VendorOrders = () => {
 
               <div className="p-8 bg-[#070B0F]/50 border-t border-white/5 flex justify-end">
                 <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                  whileHover={{ scale: 1.02, translateY: -1 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => setSelectedOrder(null)}
-                  className="px-8 py-3 bg-white text-black text-[10px] font-black uppercase tracking-[0.2em] rounded-xl"
+                  className="px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-[#A0AAB2] hover:text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-xl transition-all"
                 >
                   Close
                 </motion.button>

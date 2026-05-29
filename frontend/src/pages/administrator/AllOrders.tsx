@@ -210,7 +210,7 @@ const AllOrders = () => {
                 <div className="absolute bottom-16 left-12 w-[520px] h-[520px] bg-[rgba(255,215,0,0.10)] rounded-full blur-3xl animate-pulse"></div>
             </div>
 
-            <div className="relative z-10 px-4 md:px-8 w-full max-w-full pb-16 sm:pb-20 pt-6">
+            <div className="relative z-10 px-4 md:px-8 w-full max-w-full pb-4 sm:pb-6 pt-6">
                 <div className="space-y-8">
                     {/* Header section */}
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mt-4">
