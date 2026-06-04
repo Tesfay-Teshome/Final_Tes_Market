@@ -555,6 +555,7 @@ const Home = () => {
                   src="https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800&h=600&fit=crop"
                   alt="Latest Electronics"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  crossOrigin="anonymous"
                 />
                 <div className="absolute inset-0 bg-black/60 group-hover:bg-black/50 transition-colors flex flex-col justify-end p-4 sm:p-6">
                   <span className="inline-block px-3 py-1 bg-red-500 text-white text-xs font-bold rounded-full mb-2 sm:mb-3 w-fit">HOT DEAL</span>
@@ -579,6 +580,7 @@ const Home = () => {
                   src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800&h=600&fit=crop"
                   alt="Fashion Collection"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  crossOrigin="anonymous"
                 />
                 <div className="absolute inset-0 bg-black/60 group-hover:bg-black/50 transition-colors flex flex-col justify-end p-4 sm:p-6">
                   <span className="inline-block px-3 py-1 bg-purple-500 text-white text-xs font-bold rounded-full mb-2 sm:mb-3 w-fit">NEW ARRIVAL</span>
@@ -670,6 +672,7 @@ const Home = () => {
                         src={resolveMediaUrl((product as any).image) || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=300&fit=crop'}
                         alt={product.name}
                         className="w-full h-full object-contain bg-white p-2 transition-transform duration-500 group-hover:scale-105"
+                        crossOrigin="anonymous"
                         onError={(e) => {
                           const el = e.target as HTMLImageElement;
                           const fallback = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=300&fit=crop';
@@ -1278,6 +1281,7 @@ const Home = () => {
                     src={testimonial.image}
                     alt={testimonial.name}
                     className="w-14 h-14 rounded-full object-cover mr-4 border-2 border-green-500"
+                    crossOrigin="anonymous"
                   />
                   <div>
                     <h4 className="text-lg font-bold text-gray-900">{testimonial.name}</h4>

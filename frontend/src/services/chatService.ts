@@ -86,16 +86,19 @@ class ChatService implements IChatService {
 
     console.log('Initializing chat service polling (authenticated)...');
 
-    // Initial fetch of conversations
-    this.fetchConversations().catch(error => {
-      console.error('Failed to fetch initial conversations:', error);
-    });
+    // Delay initial fetch to avoid request abortion on page load
+    const initialFetchTimeout = setTimeout(() => {
+      this.fetchConversations().catch(error => {
+        console.error('Failed to fetch initial conversations:', error);
+      });
+    }, 1500);
 
     // Set up polling for conversations (every 30 seconds)
     this.pollingInterval = setInterval(() => {
       if (!this.isAuthenticated()) {
         // Stop polling immediately if logged out
         this.destroy();
+        clearTimeout(initialFetchTimeout);
         return;
       }
       this.fetchConversations().catch(error => {

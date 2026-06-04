@@ -127,6 +127,8 @@ interface AdminDashboardRecentOrder {
     full_name?: string;
   };
   link?: string;
+  transaction_id?: string;
+  payment_method?: string;
 }
 
 interface AdminDashboardHealth {
@@ -322,10 +324,10 @@ const Dashboard = () => {
     retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
-  const recentOrdersQuery = useQuery({
-    queryKey: ['admin-dashboard-recent-orders'],
+  const transactionsQuery = useQuery({
+    queryKey: ['admin-dashboard-transactions'],
     queryFn: async () => {
-      const response = await adminAPI.getRecentOrders({ limit: 5 });
+      const response = await adminAPI.getOrders({ limit: 20 });
       return response.data || {};
     },
     staleTime: 30 * 1000,
@@ -485,9 +487,22 @@ const Dashboard = () => {
     },
   };
 
-  const recentOrders: AdminDashboardRecentOrder[] = Array.isArray((recentOrdersQuery.data as any)?.results)
-    ? (recentOrdersQuery.data as any).results
-    : [];
+  const recentOrders: AdminDashboardRecentOrder[] = (() => {
+    const orders = Array.isArray((transactionsQuery.data as any)?.results)
+      ? (transactionsQuery.data as any).results
+      : Array.isArray(transactionsQuery.data)
+        ? transactionsQuery.data
+        : [];
+
+    return orders.map((order: any) => ({
+      id: order.id,
+      status: order.status,
+      total_amount: order.total_amount || 0,
+      created_at: order.created_at,
+      buyer: order.customer || order.user || order.buyer,
+      link: `/administrator/orders/${order.id}`,
+    }));
+  })();
 
   const dashboardNotifications: DashboardNotification[] = Array.isArray(notificationsQuery.data)
     ? (notificationsQuery.data as DashboardNotification[])
@@ -1095,7 +1110,7 @@ const Dashboard = () => {
                             {order.buyer?.full_name?.charAt(0) || 'G'}
                           </div>
                           <div>
-                            <div className="text-[9px] sm:text-[11px] font-black text-[#6A827B] uppercase tracking-widest mb-0.5">#{order.id.slice(0, 8)}</div>
+                            <div className="text-[9px] sm:text-[11px] font-black text-[#6A827B] uppercase tracking-widest mb-0.5">#{String(order.id).slice(0, 8)}</div>
                             <div className="text-white font-bold text-xs sm:text-[14px] group-hover:text-[#00FF9D] transition-colors line-clamp-1">{order.buyer?.full_name || order.buyer?.email || 'Guest Participant'}</div>
                           </div>
                         </div>

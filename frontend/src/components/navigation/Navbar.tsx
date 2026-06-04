@@ -96,7 +96,7 @@ const Navbar = () => {
             setUnreadNotifications(notificationsData.filter((n: any) => !n.is_read).length);
           }
         } catch (e) {
-          console.error('Error fetching notifications:', e);
+          // Silently handle errors to avoid console spam
           setNotifications([]);
           setUnreadNotifications(0);
         }
@@ -116,7 +116,7 @@ const Navbar = () => {
           const unreadCount = conversationsData.reduce((sum: number, conv: any) => sum + (conv?.unread_count || 0), 0);
           setUnreadMessages(unreadCount || 0);
         } catch (e) {
-          console.error('Error fetching unread messages:', e);
+          // Silently handle errors to avoid console spam
           setUnreadMessages(0);
         }
       } else {
@@ -126,8 +126,11 @@ const Navbar = () => {
 
     // Initial fetches with error handling
     if (isAuthenticated) {
-      fetchNotifications().catch(console.error);
-      fetchUnreadMessages().catch(console.error);
+      // Delay initial fetch to avoid request abortion on page load
+      const initialFetchTimeout = setTimeout(() => {
+        fetchNotifications().catch(console.error);
+        fetchUnreadMessages().catch(console.error);
+      }, 1000);
 
       // Listen for instant updates from MessagesPage
       const handleMessagesRead = () => {
@@ -144,6 +147,7 @@ const Navbar = () => {
       }, 30000);
 
       return () => {
+        clearTimeout(initialFetchTimeout);
         if (notificationInterval) clearInterval(notificationInterval);
         if (messageInterval) clearInterval(messageInterval);
         window.removeEventListener('messagesRead', handleMessagesRead);
