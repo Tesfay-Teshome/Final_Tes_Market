@@ -176,10 +176,10 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen flex">
+    <div className="grid grid-cols-1 lg:grid-cols-2 min-h-screen">
       {/* Left Side - Brand Section */}
-      <motion.div 
-        className="hidden lg:flex lg:w-1/2 relative overflow-hidden"
+      <motion.div
+        className="hidden lg:flex relative overflow-hidden"
         style={{
           backgroundImage: `linear-gradient(rgba(18, 49, 117, 0.7), rgba(67, 20, 95, 0.7), rgba(30, 27, 75, 0.7)), url(${bannerImage})`,
           backgroundSize: 'cover',
@@ -436,14 +436,20 @@ const Register = () => {
       </motion.div>
       
       {/* Right Side - Form Section */}
-      <motion.div 
-        className="w-full lg:w-1/2 bg-white p-3 sm:p-6 md:p-8 lg:p-12 flex items-center justify-center relative overflow-hidden"
+      <motion.div
+        className="w-full bg-white p-3 sm:p-6 md:p-8 lg:p-12 flex items-start justify-center relative min-h-screen pt-12"
         initial={{ opacity: 0, x: -50 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.8 }}
       >
-  
-        <motion.div 
+        {/* Decorative emerald/green background elements */}
+        <div className="absolute inset-0 overflow-hidden bg-gradient-to-br from-emerald-50/50 via-white to-green-50/50">
+          <div className="absolute -top-20 -right-20 w-96 h-96 bg-gradient-to-br from-emerald-200/40 to-green-200/40 rounded-full opacity-40 blur-3xl animate-pulse"></div>
+          <div className="absolute top-1/2 -left-20 w-80 h-80 bg-gradient-to-tr from-teal-200/40 to-emerald-200/40 rounded-full opacity-40 blur-3xl animate-pulse delay-700"></div>
+          <div className="absolute -bottom-20 -right-10 w-80 h-80 bg-gradient-to-br from-green-200/40 to-emerald-200/40 rounded-full opacity-40 blur-3xl animate-pulse delay-1000"></div>
+        </div>
+
+        <motion.div
           className="w-full max-w-4xl relative z-10"
           initial={{ opacity: 0, x: 50 }}
           animate={{ opacity: 1, x: 0 }}

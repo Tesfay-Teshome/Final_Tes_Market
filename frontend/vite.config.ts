@@ -28,6 +28,8 @@ export default defineConfig({
         target: (process.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, ''),
         changeOrigin: true,
         secure: false,
+        timeout: 60000,
+        proxyTimeout: 60000,
       },
       // Proxy media and static assets to backend in development so mobile only needs port 3000
       '/media': {

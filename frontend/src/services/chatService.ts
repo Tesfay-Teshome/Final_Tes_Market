@@ -84,14 +84,14 @@ class ChatService implements IChatService {
     if (this.isPolling) return;
     if (!this.isAuthenticated()) return;
 
-    console.log('Initializing chat service polling (authenticated)...');
+    // console.log('Initializing chat service polling (authenticated)...');
 
     // Delay initial fetch to avoid request abortion on page load
     const initialFetchTimeout = setTimeout(() => {
-      this.fetchConversations().catch(error => {
-        console.error('Failed to fetch initial conversations:', error);
+      this.fetchConversations().catch(() => {
+        // Silently handle errors to avoid console spam
       });
-    }, 1500);
+    }, 2000);
 
     // Set up polling for conversations (every 30 seconds)
     this.pollingInterval = setInterval(() => {
@@ -101,8 +101,8 @@ class ChatService implements IChatService {
         clearTimeout(initialFetchTimeout);
         return;
       }
-      this.fetchConversations().catch(error => {
-        console.error('Polling error in fetchConversations:', error);
+      this.fetchConversations().catch(() => {
+        // Silently handle errors to avoid console spam
       });
     }, 30000);
 

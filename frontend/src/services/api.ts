@@ -189,7 +189,7 @@ const api = axios.create({
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   },
-  timeout: 30000, // 30 second timeout
+  timeout: 60000, // 60 second timeout
 }) as CustomAxiosInstance;
 
 // Store Review API
@@ -319,14 +319,15 @@ api.interceptors.response.use(
     return response;
   },
   async (error) => {
-    // List of endpoints that can fail silently when unauthenticated
+    // List of endpoints that can fail silently when unauthenticated or on page load
     const silentFailEndpoints = ['/api/notifications/', '/api/messaging/conversations/'];
     const isSilentEndpoint = silentFailEndpoints.some(endpoint => error.config?.url?.includes(endpoint));
     const is401 = error.response?.status === 401;
+    const isNoResponse = !error.response && error.request;
 
-    // Silently handle 401 errors for non-critical endpoints (user not authenticated is expected)
-    if (is401 && isSilentEndpoint) {
-      // Don't log these - they're expected when user is not authenticated
+    // Silently handle 401 errors and "No response received" errors for non-critical endpoints
+    if ((is401 || isNoResponse) && isSilentEndpoint) {
+      // Don't log these - they're expected when user is not authenticated or on page load
       return Promise.reject(error);
     }
 

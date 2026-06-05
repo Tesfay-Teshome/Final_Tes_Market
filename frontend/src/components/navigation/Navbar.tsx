@@ -78,49 +78,88 @@ const Navbar = () => {
   useEffect(() => {
     let notificationInterval: NodeJS.Timeout;
     let messageInterval: NodeJS.Timeout;
+    let abortController: AbortController | null = null;
 
     const fetchNotifications = async () => {
-      if (isAuthenticated) {
-        try {
-          const { notificationsAPI } = await import('@/services/api');
-          const response = await notificationsAPI.getAll();
-          const notificationsData = Array.isArray(response.data) ? response.data : [];
-          setNotifications(notificationsData);
+      if (!isAuthenticated) {
+        setNotifications([]);
+        setUnreadNotifications(0);
+        return;
+      }
 
-          // Get unread count from the API if available, or calculate from notifications
-          try {
-            const unreadResponse = await notificationsAPI.getUnreadCount();
-            setUnreadNotifications(unreadResponse.data.unread_count || 0);
-          } catch (e) {
-            // Fallback in case unread count endpoint fails
-            setUnreadNotifications(notificationsData.filter((n: any) => !n.is_read).length);
-          }
+      // Cancel previous request if still pending
+      if (abortController) {
+        abortController.abort();
+      }
+
+      abortController = new AbortController();
+
+      try {
+        const { notificationsAPI } = await import('@/services/api');
+        const response = await notificationsAPI.getAll();
+        const notificationsData = Array.isArray(response.data) ? response.data : [];
+        setNotifications(notificationsData);
+
+        // Get unread count from the API if available, or calculate from notifications
+        try {
+          const unreadResponse = await notificationsAPI.getUnreadCount();
+          setUnreadNotifications(unreadResponse.data.unread_count || 0);
         } catch (e) {
-          // Silently handle errors to avoid console spam
+          // Fallback in case unread count endpoint fails
+          setUnreadNotifications(notificationsData.filter((n: any) => !n.is_read).length);
+        }
+      } catch (e) {
+        // Silently handle errors to avoid console spam
+        const error = e as any;
+        if (error.name !== 'CanceledError' && error.code !== 'ECONNABORTED') {
           setNotifications([]);
           setUnreadNotifications(0);
         }
-      } else {
-        // Reset notifications if user is not authenticated
-        setNotifications([]);
-        setUnreadNotifications(0);
       }
     };
 
     const fetchUnreadMessages = async () => {
-      if (isAuthenticated) {
-        try {
-          const { messagingAPI } = await import('@/services/api');
-          const conversations = await messagingAPI.getConversations();
-          const conversationsData = Array.isArray(conversations.data) ? conversations.data : [];
-          const unreadCount = conversationsData.reduce((sum: number, conv: any) => sum + (conv?.unread_count || 0), 0);
-          setUnreadMessages(unreadCount || 0);
-        } catch (e) {
-          // Silently handle errors to avoid console spam
+      if (!isAuthenticated) {
+        setUnreadMessages(0);
+        return;
+      }
+
+      try {
+        const { messagingAPI } = await import('@/services/api');
+
+        // Always use conversation-based calculation to avoid API endpoint returning placeholder data
+        const conversations = await messagingAPI.getConversations();
+        const conversationsData = Array.isArray(conversations.data) ? conversations.data : [];
+
+        console.log('🔍 All conversations from API:', conversationsData);
+
+        // Filter conversations to only include those where current user is a participant
+        const userConversations = conversationsData.filter((conv: any) => {
+          if (!conv?.participants || !Array.isArray(conv.participants)) return false;
+          return conv.participants.some((p: any) => {
+            const participantId = typeof p === 'object' && p !== null && 'id' in p ? p.id : p;
+            return String(participantId) === String(user?.id);
+          });
+        });
+
+        console.log('🔍 Filtered user conversations:', userConversations);
+        console.log('🔍 User ID for filtering:', user?.id);
+
+        const unreadCount = userConversations.reduce((sum: number, conv: any) => {
+          const convUnread = conv?.unread_count || 0;
+          console.log(`🔍 Conversation ${conv.id}: unread_count = ${convUnread}`);
+          return sum + convUnread;
+        }, 0);
+
+        console.log('🔍 Final calculated unread count:', unreadCount);
+        setUnreadMessages(unreadCount || 0);
+      } catch (e) {
+        // Silently handle errors to avoid console spam
+        const error = e as any;
+        if (error.name !== 'CanceledError' && error.code !== 'ECONNABORTED') {
+          console.error('Error fetching unread messages:', error);
           setUnreadMessages(0);
         }
-      } else {
-        setUnreadMessages(0);
       }
     };
 
@@ -128,26 +167,28 @@ const Navbar = () => {
     if (isAuthenticated) {
       // Delay initial fetch to avoid request abortion on page load
       const initialFetchTimeout = setTimeout(() => {
-        fetchNotifications().catch(console.error);
-        fetchUnreadMessages().catch(console.error);
-      }, 1000);
+        fetchNotifications().catch(() => {});
+        fetchUnreadMessages().catch(() => {});
+      }, 3000);
 
       // Listen for instant updates from MessagesPage
       const handleMessagesRead = () => {
-        fetchUnreadMessages().catch(console.error);
+        fetchUnreadMessages().catch(() => {});
       };
       window.addEventListener('messagesRead', handleMessagesRead);
 
-      // Set up intervals for periodic updates (every 30 seconds)
+      // Set up intervals for periodic updates
       notificationInterval = setInterval(() => {
-        fetchNotifications().catch(console.error);
+        fetchNotifications().catch(() => {});
       }, 30000);
+      // Messages poll every 15s for snappy sync with MessagesPage
       messageInterval = setInterval(() => {
-        fetchUnreadMessages().catch(console.error);
-      }, 30000);
+        fetchUnreadMessages().catch(() => {});
+      }, 15000);
 
       return () => {
         clearTimeout(initialFetchTimeout);
+        if (abortController) abortController.abort();
         if (notificationInterval) clearInterval(notificationInterval);
         if (messageInterval) clearInterval(messageInterval);
         window.removeEventListener('messagesRead', handleMessagesRead);
@@ -155,6 +196,7 @@ const Navbar = () => {
     }
 
     return () => {
+      if (abortController) abortController.abort();
       if (notificationInterval) clearInterval(notificationInterval);
       if (messageInterval) clearInterval(messageInterval);
     };
@@ -884,11 +926,9 @@ const Navbar = () => {
                         >
                           <MessageSquare className="h-5 w-5 mr-3" />
                           Messages
-                          {unreadMessages > 0 && (
-                            <span className="ml-auto bg-blue-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold animate-pulse">
-                              {unreadMessages > 9 ? '9+' : unreadMessages}
-                            </span>
-                          )}
+                          <span className="ml-auto bg-blue-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                            {unreadMessages > 9 ? '9+' : unreadMessages}
+                          </span>
                         </Link>
 
                         {/* Role-specific links */}

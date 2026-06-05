@@ -218,9 +218,9 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex bg-gray-50">
+    <div className="grid grid-cols-1 lg:grid-cols-2 min-h-screen bg-gray-50">
       {/* Left side - Brand Section */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden"
+      <div className="hidden lg:flex relative overflow-hidden"
         style={{
           backgroundImage: `linear-gradient(rgba(18, 49, 117, 0.7), rgba(67, 20, 95, 0.7), rgba(30, 27, 75, 0.7)), url(${bannerImage})`,
           backgroundSize: 'cover',
@@ -491,14 +491,15 @@ const Login = () => {
       </div>
       
       {/* Right side - Login Form */}
-      <div className="w-full lg:w-1/2 bg-white p-3 sm:p-6 md:p-8 lg:p-12 flex items-center justify-center relative">
-        {/* Decorative background elements */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-20 -right-20 w-80 h-80 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full opacity-30 blur-3xl"></div>
-          <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-gradient-to-tr from-pink-100 to-yellow-100 rounded-full opacity-30 blur-3xl"></div>
+      <div className="w-full bg-white p-3 sm:p-6 md:p-8 lg:p-12 flex items-start justify-center relative min-h-screen pt-12">
+        {/* Decorative emerald/green background elements */}
+        <div className="absolute inset-0 overflow-hidden bg-gradient-to-br from-emerald-50/50 via-white to-green-50/50">
+          <div className="absolute -top-20 -right-20 w-96 h-96 bg-gradient-to-br from-emerald-200/40 to-green-200/40 rounded-full opacity-40 blur-3xl animate-pulse"></div>
+          <div className="absolute top-1/2 -left-20 w-80 h-80 bg-gradient-to-tr from-teal-200/40 to-emerald-200/40 rounded-full opacity-40 blur-3xl animate-pulse delay-700"></div>
+          <div className="absolute -bottom-20 -right-10 w-80 h-80 bg-gradient-to-br from-green-200/40 to-emerald-200/40 rounded-full opacity-40 blur-3xl animate-pulse delay-1000"></div>
         </div>
-        
-        <motion.div 
+
+        <motion.div
           className="w-full max-w-2xl relative z-10"
           initial={{ opacity: 0, x: 50 }}
           animate={{ opacity: 1, x: 0 }}
@@ -539,12 +540,7 @@ const Login = () => {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.5 }}
             >
-              <label htmlFor="email" className="block text-sm font-bold bg-gradient-to-r from-gray-800 to-gray-700 bg-clip-text text-transparent mb-3">
-                Email Address
-              </label>
-              <div className="relative group">
-                <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 via-green-500/20 to-emerald-500/20 rounded-2xl blur-sm opacity-0 group-focus-within:opacity-100 transition-all duration-300"></div>
-                <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-emerald-600 transition-all duration-300 z-10" />
+              <div className="relative group mt-2">
                 <input
                   id="email"
                   type="email"
@@ -553,10 +549,18 @@ const Login = () => {
                   autoCorrect="off"
                   spellCheck={false}
                   inputMode="email"
-                  className="relative z-10 pl-12 pr-4 w-full py-4 border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all duration-300 bg-white hover:border-gray-300 hover:shadow-lg text-base placeholder-gray-500 shadow-sm font-medium backdrop-blur-sm"
-                  placeholder="Enter your email address"
+                  className="peer relative z-10 pl-12 pr-4 w-full h-14 border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all duration-300 bg-white/70 backdrop-blur-sm hover:border-gray-300 hover:shadow-lg text-base placeholder-transparent shadow-sm font-medium"
+                  placeholder="Email Address"
                   {...register('email')}
                 />
+                <label 
+                  htmlFor="email" 
+                  className="absolute left-12 top-1/2 -translate-y-1/2 text-gray-500 text-base transition-all duration-300 peer-focus:-top-2 peer-focus:left-4 peer-focus:text-xs peer-focus:text-emerald-600 peer-focus:bg-white peer-focus:px-2 peer-focus:font-bold peer-focus:rounded-md peer-focus:-translate-y-0 peer-valid:-top-2 peer-valid:left-4 peer-valid:text-xs peer-valid:text-emerald-600 peer-valid:bg-white peer-valid:px-2 peer-valid:font-bold peer-valid:rounded-md peer-valid:-translate-y-0 z-20 pointer-events-none"
+                >
+                  Email Address
+                </label>
+                <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 via-green-500/10 to-emerald-500/10 rounded-2xl blur-sm opacity-0 peer-focus:opacity-100 transition-all duration-300"></div>
+                <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 peer-focus:text-emerald-600 transition-all duration-300 z-30" />
               </div>
               {errors.email && (
                 <motion.p 
@@ -575,26 +579,7 @@ const Login = () => {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.6 }}
             >
-              <div className="flex items-center justify-between mb-3">
-                <label htmlFor="password" className="block text-sm font-bold bg-gradient-to-r from-gray-800 to-gray-700 bg-clip-text text-transparent">
-                  Password
-                </label>
-                <motion.button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5 text-gray-400 hover:text-rose-600 transition-colors" />
-                  ) : (
-                    <Eye className="h-5 w-5 text-gray-400 hover:text-rose-600 transition-colors" />
-                  )}
-                </motion.button>
-              </div>
-              <div className="relative group">
-                <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 via-green-500/20 to-emerald-500/20 rounded-2xl blur-sm opacity-0 group-focus-within:opacity-100 transition-all duration-300"></div>
-                <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-emerald-600 transition-all duration-300 z-10" />
+              <div className="relative group mt-6">
                 <input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
@@ -603,10 +588,32 @@ const Login = () => {
                   autoCorrect="off"
                   spellCheck={false}
                   inputMode="text"
-                  className="relative z-10 pl-12 pr-12 w-full py-4 border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all duration-300 bg-white hover:border-gray-300 hover:shadow-lg text-base placeholder-gray-500 shadow-sm font-medium backdrop-blur-sm"
-                  placeholder="Enter your password"
+                  className="peer relative z-10 pl-12 pr-12 w-full h-14 border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all duration-300 bg-white/70 backdrop-blur-sm hover:border-gray-300 hover:shadow-lg text-base placeholder-transparent shadow-sm font-medium"
+                  placeholder="Password"
                   {...register('password')}
                 />
+                <label 
+                  htmlFor="password" 
+                  className="absolute left-12 top-1/2 -translate-y-1/2 text-gray-500 text-base transition-all duration-300 peer-focus:-top-2 peer-focus:left-4 peer-focus:text-xs peer-focus:text-emerald-600 peer-focus:bg-white peer-focus:px-2 peer-focus:font-bold peer-focus:rounded-md peer-focus:-translate-y-0 peer-[&:not(:placeholder-shown)]:-top-2 peer-[&:not(:placeholder-shown)]:left-4 peer-[&:not(:placeholder-shown)]:text-xs peer-[&:not(:placeholder-shown)]:text-emerald-600 peer-[&:not(:placeholder-shown)]:bg-white peer-[&:not(:placeholder-shown)]:px-2 peer-[&:not(:placeholder-shown)]:font-bold peer-[&:not(:placeholder-shown)]:rounded-md peer-[&:not(:placeholder-shown)]:-translate-y-0 z-20 pointer-events-none"
+                >
+                  Password
+                </label>
+                <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 via-green-500/10 to-emerald-500/10 rounded-2xl blur-sm opacity-0 peer-focus:opacity-100 transition-all duration-300"></div>
+                <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 peer-focus:text-emerald-600 transition-all duration-300 z-30" />
+                
+                <motion.button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 z-30 p-1 rounded-full hover:bg-gray-100"
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5 text-gray-400 hover:text-emerald-600 transition-colors" />
+                  ) : (
+                    <Eye className="h-5 w-5 text-gray-400 hover:text-emerald-600 transition-colors" />
+                  )}
+                </motion.button>
               </div>
               {errors.password && (
                 <motion.p 
@@ -620,22 +627,22 @@ const Login = () => {
               )}
             </motion.div>
             
-            <motion.div 
-              className="flex items-center"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.7 }}
-            >
-              <input
-                id="remember-me"
-                name="remember-me"
-                type="checkbox"
-                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border border-gray-300 rounded transition-colors"
-              />
-              <label htmlFor="remember-me" className="ml-2 block text-sm font-semibold text-gray-800">
-                Remember me
-              </label>
-            </motion.div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <input
+                    id="remember-me"
+                    name="remember-me"
+                    type="checkbox"
+                    className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border border-gray-300 rounded transition-colors"
+                  />
+                  <label htmlFor="remember-me" className="ml-2 block text-sm font-semibold text-gray-800">
+                    Remember me
+                  </label>
+                </div>
+                <Link to="/forgot-password" className="text-sm font-bold text-emerald-600 hover:text-emerald-700 transition-colors">
+                  Forgot Password?
+                </Link>
+              </div>
             
             <motion.div
               initial={{ opacity: 0, y: 20 }}

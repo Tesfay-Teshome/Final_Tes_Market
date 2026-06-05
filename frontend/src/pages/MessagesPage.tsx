@@ -353,6 +353,8 @@ function MessagesPage() {
             user_type: 'administrator'
           });
           users = Array.isArray(response.data) ? response.data : [];
+          // Remove current vendor from the list
+          users = users.filter(user => user.id !== currentUser.id);
         }
         // For admins, show all vendors and other admins
         else {
@@ -1869,7 +1871,7 @@ function MessagesPage() {
   }
 
   return (
-    <div className="relative h-[calc(100vh-80px)] bg-gradient-to-br from-emerald-50 via-white to-slate-50 flex overflow-hidden">
+    <div className="relative h-[calc(100vh-80px)] bg-gradient-to-br from-emerald-50 via-white to-slate-50 flex overflow-hidden pt-2">
       {/* Mobile backdrop when sidebar is open */}
       {isMobile && isSidebarOpen && (
         <div
@@ -1880,7 +1882,7 @@ function MessagesPage() {
       {/* Sidebar */}
       <motion.div
         className={cn(
-          "bg-white/80 backdrop-blur-xl border-r border-emerald-100/50 flex flex-col transition-all duration-300 ease-in-out shadow-2xl z-40",
+          "bg-emerald-50/40 backdrop-blur-xl border-r-2 border-emerald-200 flex flex-col transition-all duration-300 ease-in-out shadow-2xl z-40",
           isSidebarOpen ? "w-80" : "w-0",
           isMobile && "absolute left-0 top-[80px] h-[calc(100vh-80px)]"
         )}
@@ -1891,13 +1893,19 @@ function MessagesPage() {
         }}
       >
         <div className="flex flex-col h-full min-h-0">
-          <div className="p-4 border-b border-emerald-50 bg-emerald-50/30 backdrop-blur-sm sticky top-0 z-10">
+          <div className="px-4 pt-5 pb-4 border-b border-emerald-100/70 bg-gradient-to-b from-white to-emerald-50/40 backdrop-blur-sm sticky top-0 z-10">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-emerald-700">Messages</h2>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shadow shadow-emerald-200">
+                  <MessageSquare className="w-4 h-4 text-white" />
+                </div>
+                <h2 className="text-lg font-bold text-gray-900 tracking-tight">Messages</h2>
+              </div>
               {isMobile && (
                 <Button
                   variant="ghost"
                   size="icon"
+                  className="rounded-full hover:bg-emerald-50 text-emerald-600"
                   onClick={() => setIsSidebarOpen(false)}
                 >
                   <ArrowLeft className="w-5 h-5" />
@@ -1905,14 +1913,22 @@ function MessagesPage() {
               )}
             </div>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-emerald-400 z-10" />
               <Input
                 type="text"
                 placeholder="Search conversations..."
-                className="pl-10 rounded-full bg-emerald-50 border border-emerald-100 focus-visible:ring-emerald-500 focus:border-emerald-500 shadow-sm"
+                className="relative z-10 pl-10 pr-8 rounded-2xl bg-white/90 border border-emerald-100 focus-visible:ring-2 focus-visible:ring-emerald-400/30 focus:border-emerald-300 shadow-sm h-10 text-sm placeholder:text-gray-400 transition-all duration-200"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
+              {searchQuery && (
+                <button
+                  className="absolute right-3 top-1/2 -translate-y-1/2 z-10 p-0.5 rounded-full hover:bg-emerald-50 text-gray-400 hover:text-gray-600 transition-colors"
+                  onClick={() => setSearchQuery('')}
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
           </div>
 
@@ -1955,9 +1971,9 @@ function MessagesPage() {
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: index * 0.03 }}
-                        className={`relative group cursor-pointer transition-all duration-200 rounded-xl mx-2 border ${selectedParticipant?.id === user.id
-                          ? 'bg-white border-emerald-200 shadow'
-                          : 'bg-white border-transparent hover:border-emerald-200 hover:shadow'
+                        className={`relative group cursor-pointer transition-all duration-200 rounded-2xl mx-2 my-1 border ${selectedParticipant?.id === user.id || (existingConversation?.id && String(conversationId) === String(existingConversation.id))
+                          ? 'bg-white border-emerald-300 shadow-md ring-1 ring-emerald-200'
+                          : 'bg-white border-gray-200 shadow-sm hover:border-emerald-200 hover:shadow-md hover:bg-emerald-50/50'
                           }`}
                         onClick={() => {
                           if (existingConversation?.id) {
@@ -1994,10 +2010,10 @@ function MessagesPage() {
                             )}
 
                             {/* Unread Count Badge */}
-                            {existingConversation?.unread_count && existingConversation.unread_count > 0 && (
-                              <span className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center border-2 border-white shadow-lg">
-                                <span className="text-white text-xs font-bold">
-                                  {existingConversation.unread_count > 9 ? '9+' : existingConversation.unread_count}
+                            {(existingConversation?.unread_count ?? 0) > 0 && (
+                              <span className="absolute -top-2 -right-2 min-w-[1.5rem] h-6 px-1.5 bg-gradient-to-br from-emerald-500 to-green-600 rounded-full flex items-center justify-center border-2 border-white shadow-lg">
+                                <span className="text-white text-[10px] font-black tracking-tight">
+                                  {(existingConversation?.unread_count ?? 0) > 9 ? '9+' : existingConversation?.unread_count}
                                 </span>
                               </span>
                             )}
@@ -2080,7 +2096,7 @@ function MessagesPage() {
         {otherParticipant ? (
           <>
             {/* Chat header */}
-            <div className="bg-white/70 backdrop-blur-xl border-b border-emerald-100/50 p-4 flex-shrink-0 sticky top-0 z-40 shadow-[0_1px_15px_rgba(16,185,129,0.05)]">
+            <div className="bg-white/85 backdrop-blur-xl border-b border-emerald-100/60 px-5 py-4 flex-shrink-0 sticky top-0 z-40 shadow-[0_4px_24px_rgba(16,185,129,0.07)] mt-6 mx-2 rounded-t-2xl">
               <div className="flex items-center">
                 <Button
                   variant="ghost"
@@ -2146,7 +2162,7 @@ function MessagesPage() {
             </div>
 
             {/* Messages */}
-            <div ref={messagesContainerRef} className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 bg-transparent pb-20 md:pb-24">
+            <div ref={messagesContainerRef} className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 bg-gray-50 pb-20 md:pb-24 shadow-inner">
               {isLoadingMessages ? (
                 <div className="flex items-center justify-center h-full">
                   <Loader2 className="w-8 h-8 animate-spin text-emerald-400" />
@@ -2157,9 +2173,9 @@ function MessagesPage() {
                   <div className="w-20 h-20 bg-white/60 rounded-full shadow-lg flex items-center justify-center mb-6 border border-emerald-50 backdrop-blur-md">
                     <MessageSquare className="w-10 h-10 text-emerald-400" />
                   </div>
-                  <h4 className="font-bold text-gray-800 text-xl mb-2">Begin the Journey</h4>
+                  <h4 className="font-bold text-gray-800 text-xl mb-2">Start a Conversation</h4>
                   <p className="text-sm text-gray-500 max-w-[240px]">
-                    Say hello to <span className="font-bold text-emerald-700">{getFullName(enrichedOtherParticipant)}</span> and start chatting.
+                    Connect with <span className="font-bold text-emerald-700">{getFullName(enrichedOtherParticipant)}</span> to discuss products, orders, and business inquiries.
                   </p>
                 </div>
               ) : (
@@ -2201,12 +2217,11 @@ function MessagesPage() {
                       {/* Edit/Delete button for own messages - removed duplicate */}
                       <div
                         className={cn(
-                          'relative rounded-[20px] px-4 py-2.5 max-w-[80%] md:max-w-[65%] group overflow-hidden break-words transition-all duration-200 shadow-sm hover:shadow-md',
+                          'relative rounded-2xl px-4 py-3 max-w-[80%] md:max-w-[65%] group overflow-hidden break-words transition-all duration-200',
                           msg.sender_id === currentUser?.id
-                            ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white rounded-br-sm shadow-emerald-200/40'
-                            : 'bg-white border border-emerald-50 text-gray-800 rounded-bl-sm shadow-slate-200/40',
-                          // Nudge bubbles away from avatars (received -> right, sent -> left)
-                          msg.sender_id !== currentUser?.id ? 'ml-7 md:ml-8' : 'mr-7 md:mr-8'
+                            ? 'bg-gradient-to-br from-emerald-500 via-emerald-500 to-green-600 text-white rounded-tr-sm shadow-lg shadow-emerald-200/50'
+                            : 'bg-white border border-gray-100/80 text-gray-800 rounded-tl-sm shadow-md shadow-gray-100/70',
+                          msg.sender_id !== currentUser?.id ? 'ml-9 md:ml-10' : 'mr-9 md:mr-10'
                         )}
                       >
                         {/* Edit/Delete button inside bubble */}
@@ -2361,7 +2376,7 @@ function MessagesPage() {
 
             {/* Message input - inside the chat box */}
             <div
-              className="sticky bottom-0 bg-white/70 backdrop-blur-2xl p-3 md:p-5 shadow-[0_-10px_40px_rgba(16,185,129,0.06)] z-40 border-t border-emerald-100/30"
+              className="sticky bottom-0 bg-white p-3 md:p-5 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-40 border-t-2 border-gray-200"
               style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)' }}
             >
               {/* File preview */}
@@ -2504,7 +2519,7 @@ function MessagesPage() {
             </div>
           </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-gradient-to-br from-emerald-50/40 via-white to-slate-50 relative overflow-hidden">
+          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-gray-50 relative overflow-hidden">
             {/* Background decorative elements */}
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
               <div className="absolute -top-[10%] -right-[5%] w-[40%] h-[40%] rounded-full bg-emerald-100/30 blur-3xl animate-pulse" />
