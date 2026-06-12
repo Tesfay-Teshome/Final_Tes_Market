@@ -91,9 +91,9 @@ class ChatService implements IChatService {
       this.fetchConversations().catch(() => {
         // Silently handle errors to avoid console spam
       });
-    }, 2000);
+    }, 5000);
 
-    // Set up polling for conversations (every 30 seconds)
+    // Set up polling for conversations (every 60 seconds to reduce load)
     this.pollingInterval = setInterval(() => {
       if (!this.isAuthenticated()) {
         // Stop polling immediately if logged out
@@ -104,7 +104,7 @@ class ChatService implements IChatService {
       this.fetchConversations().catch(() => {
         // Silently handle errors to avoid console spam
       });
-    }, 30000);
+    }, 60000);
 
     this.isPolling = true;
   }
@@ -140,7 +140,6 @@ class ChatService implements IChatService {
         return true;
       });
 
-      console.log(`Fetched ${validConversations.length} valid conversations`);
       store.dispatch(setConversations(validConversations));
     } catch (error) {
       console.error('Failed to fetch conversations:', error);

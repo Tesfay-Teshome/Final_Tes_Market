@@ -146,8 +146,8 @@ const VendorSidebar = ({ className, onClose, showCloseButton = false }: VendorSi
           <div className="flex items-center space-x-3 mb-3">
             <div className="relative">
               {profileImage ? (
-                <img 
-                  src={profileImage} 
+                <img
+                  src={profileImage}
                   alt={user?.first_name || user?.username || 'Vendor'}
                   className="w-10 h-10 rounded-full border-2 border-emerald-400 object-cover"
                 />
@@ -179,72 +179,70 @@ const VendorSidebar = ({ className, onClose, showCloseButton = false }: VendorSi
         <div className="flex-1 overflow-y-auto sidebar-scrollbar vendor-sidebar-scrollbar">
           {/* Quick Actions */}
           <div className="p-4 border-b border-emerald-800/60">
-          <h3 className="text-sm font-medium text-gray-300 mb-3 flex items-center">
-            <Zap className="w-4 h-4 mr-2 text-yellow-400" />
-            Quick Actions
-          </h3>
-          <div className="space-y-2">
-            {quickActions.map((action) => (
-              <Link
-                key={action.to}
-                to={action.to}
-                className={`group flex items-center p-2 rounded-lg bg-gradient-to-r ${action.color} hover:shadow-lg transition-all duration-300 hover:scale-105`}
-              >
-                <action.icon className="w-4 h-4 text-white mr-2" />
-                <div className="flex-1">
-                  <div className="text-xs font-medium text-white">{action.label}</div>
-                  <div className="text-xs text-white/80">{action.description}</div>
-                </div>
-              </Link>
-            ))}
-          </div>
+            <h3 className="text-sm font-medium text-gray-300 mb-3 flex items-center">
+              <Zap className="w-4 h-4 mr-2 text-yellow-400" />
+              Quick Actions
+            </h3>
+            <div className="space-y-2">
+              {quickActions.map((action) => (
+                <Link
+                  key={action.to}
+                  to={action.to}
+                  className={`group flex items-center p-2 rounded-lg bg-gradient-to-r ${action.color} hover:shadow-lg transition-all duration-300 hover:scale-105`}
+                >
+                  <action.icon className="w-4 h-4 text-white mr-2" />
+                  <div className="flex-1">
+                    <div className="text-xs font-medium text-white">{action.label}</div>
+                    <div className="text-xs text-white/80">{action.description}</div>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
 
           {/* Navigation Links */}
           <div className="p-2 space-y-1">
-          {links.map((link) => {
-            const isActive = location.pathname === link.to;
-            return (
-              <Link
-                key={link.to}
-                to={link.to}
-                className={`group flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-300 ${
-                  isActive
-                    ? 'bg-gradient-to-r from-emerald-600 to-green-600 text-white shadow-lg'
-                    : 'text-emerald-100/80 hover:bg-emerald-400/10 hover:text-white'
-                }`}
-              >
-                <link.icon className={`mr-3 h-5 w-5 flex-shrink-0 transition-transform group-hover:scale-110 ${
-                  isActive ? 'text-white' : 'text-emerald-200/70'
-                }`} />
-                <span>{link.label}</span>
-                {isActive && (
-                  <div className="ml-auto w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                )}
-              </Link>
-            );
-          })}
+            {links.map((link) => {
+              const isActive = location.pathname === link.to;
+              return (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  className={`group flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-300 ${isActive
+                      ? 'bg-gradient-to-r from-emerald-600 to-green-600 text-white shadow-lg'
+                      : 'text-emerald-100/80 hover:bg-emerald-400/10 hover:text-white'
+                    }`}
+                >
+                  <link.icon className={`mr-3 h-5 w-5 flex-shrink-0 transition-transform group-hover:scale-110 ${isActive ? 'text-white' : 'text-emerald-200/70'
+                    }`} />
+                  <span>{link.label}</span>
+                  {isActive && (
+                    <div className="ml-auto w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                  )}
+                </Link>
+              );
+            })}
           </div>
 
           {/* Footer with notifications */}
           <div className="p-4 border-t border-emerald-800/60">
-          <div className="flex items-center justify-between">
-            <Link
-              to="/vendor/notifications"
-              className="flex items-center p-2 rounded-lg hover:bg-emerald-400/10 transition-colors"
-            >
-              <Bell className="w-4 h-4 text-emerald-200/80 mr-2" />
-              <span className="text-xs text-emerald-100/80">Notifications</span>
-              <div className="ml-2 w-2 h-2 bg-red-500 rounded-full"></div>
-            </Link>
-            <Link
-              to="/messages"
-              className="flex items-center p-2 rounded-lg hover:bg-emerald-400/10 transition-colors"
-            >
-              <MessageSquare className="w-4 h-4 text-emerald-200/80 mr-2" />
-              <span className="text-xs text-emerald-100/80">Messages</span>
-            </Link>
-          </div>
+            <div className="flex items-center justify-between">
+              <Link
+                to="/vendor/notifications"
+                className="flex items-center p-2 rounded-lg hover:bg-emerald-400/10 transition-colors"
+              >
+                <Bell className="w-4 h-4 text-emerald-200/80 mr-2" />
+                <span className="text-xs text-emerald-100/80">Notifications</span>
+                <div className="ml-2 w-2 h-2 bg-red-500 rounded-full"></div>
+              </Link>
+              <Link
+                to="/messages"
+                className="flex items-center p-2 rounded-lg hover:bg-emerald-400/10 transition-colors"
+              >
+                <MessageSquare className="w-4 h-4 text-emerald-200/80 mr-2" />
+                <span className="text-xs text-emerald-100/80">Messages</span>
+              </Link>
+            </div>
           </div>
         </div>
       </nav>

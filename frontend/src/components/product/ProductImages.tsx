@@ -232,15 +232,15 @@ const ProductImages = ({
                           <Eye className="h-4 w-4" />
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="max-w-3xl">
+                      <DialogContent className="w-[95vw] max-w-3xl max-h-[90vh] overflow-y-auto">
                         <DialogHeader>
                           <DialogTitle>Image Preview</DialogTitle>
                         </DialogHeader>
-                        <div className="flex justify-center">
+                        <div className="flex justify-center p-1">
                           <img
                             src={getImageUrl(image)}
                             alt="Product"
-                            className="max-w-full max-h-96 object-contain"
+                            className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-sm"
                           />
                         </div>
                       </DialogContent>

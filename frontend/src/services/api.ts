@@ -457,7 +457,7 @@ export const authAPI = {
   },
   login: async (data: { email: string; password: string }) => {
     try {
-      console.log('🚀 Mobile Login attempt:', data.email, 'to', API_URL);
+      console.log('🚀 Login attempt:', data.email, 'to', API_URL);
       // Direct login request (login endpoint is CSRF-exempt server-side)
       const response = await api.post<AuthResponse>('/api/auth/login/', data, {
         headers: {

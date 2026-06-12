@@ -8,9 +8,9 @@ const MainLayout = () => {
   const isStorefront = location.pathname.startsWith('/store');
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className={`min-h-[100dvh] flex flex-col ${hideFooter ? 'bg-[#070B0F]' : 'bg-white'}`}>
       <Navbar />
-      <main className={`flex-grow ${isStorefront ? 'pt-0' : 'pt-16'}`}>
+      <main className={`flex-grow ${isStorefront ? 'pt-0' : 'pt-16'} ${hideFooter ? 'flex flex-col min-h-0' : ''}`}>
         <Outlet />
       </main>
       {!hideFooter && <Footer />}

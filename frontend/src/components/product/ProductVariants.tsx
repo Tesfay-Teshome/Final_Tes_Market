@@ -133,7 +133,7 @@ const ProductVariants = ({ productId, variants, onVariantsChange, readOnly = fal
                   Add Variant
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>
                     {editingVariant ? 'Edit Variant' : 'Add New Variant'}
