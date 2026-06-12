@@ -208,25 +208,35 @@ const formatLastMessage = (content?: string): string => {
 
   if (!content) return '';
 
-  const attachmentMatch = content.match(/\[ATTACHMENT:(.+?)\]/);
+  if (content.includes('[ATTACHMENT:')) {
 
-  if (attachmentMatch) {
+    const isImage = content.includes('"isImage":true') || 
 
-    try {
+                    content.includes('"fileType":"image') || 
 
-      const attachmentData = JSON.parse(attachmentMatch[1]);
+                    content.toLowerCase().includes('.png') || 
 
-      const textContent = content.replace(/\[ATTACHMENT:.+?\]/, '').trim();
+                    content.toLowerCase().includes('.jpg') || 
 
-      const prefix = attachmentData.isImage ? '📷 Image' : '📁 File';
+                    content.toLowerCase().includes('.jpeg') || 
 
-      return textContent ? `${prefix}: ${textContent}` : prefix;
+                    content.toLowerCase().includes('.webp') || 
 
-    } catch (e) {
+                    content.toLowerCase().includes('.gif');
 
-      return '📎 Attachment';
+    const prefix = isImage ? '📷 Image' : '📁 File';
+
+    const attachmentIndex = content.indexOf('[ATTACHMENT:');
+
+    const textBefore = content.substring(0, attachmentIndex).trim();
+
+    if (textBefore) {
+
+      return `${prefix}: ${textBefore}`;
 
     }
+
+    return prefix;
 
   }
 
@@ -3841,11 +3851,8 @@ function MessagesPage() {
   return (
 
     <div className={cn(
-
-      "relative bg-gradient-to-br from-[#0B0F14] via-[#0D1219] to-[#0F141B] text-[#E6EDF3] flex overflow-hidden",
-
-      isMobile ? "h-[calc(100dvh-64px)] pt-0" : "h-[calc(100dvh-80px)] pt-2"
-
+      "relative bg-[#0B111E] text-[#E6EDF3] flex overflow-hidden",
+      isMobile ? "h-[calc(100dvh-64px)] pt-3 px-3 pb-3" : "h-[calc(100dvh-64px)] p-3 gap-3"
     )}>
 
       {/* Mobile backdrop when sidebar is open */}
@@ -3872,11 +3879,11 @@ function MessagesPage() {
 
           isMobile
 
-            ? "bg-emerald-950/40 backdrop-blur-xl border-r border-emerald-400/30 absolute left-0 top-0 h-full"
+            ? "bg-emerald-950/60 backdrop-blur-lg border-r border-emerald-400/20 absolute left-0 top-0 h-full"
 
-            : "bg-gradient-to-b from-emerald-950 via-emerald-950/30 to-emerald-950 backdrop-blur-xl border-r border-emerald-400/20 shadow-emerald-500/10",
+            : "bg-gradient-to-b from-emerald-950 via-emerald-950/30 to-emerald-950 border border-emerald-400/20 rounded-2xl shadow-xl shadow-emerald-500/10",
 
-          isSidebarOpen ? "w-80" : "w-0"
+          isSidebarOpen ? "w-[280px] sm:w-[320px]" : "w-0"
 
         )}
 
@@ -3884,9 +3891,9 @@ function MessagesPage() {
 
         animate={{
 
-          width: isSidebarOpen ? 320 : 0,
+          width: isSidebarOpen ? (isMobile ? 280 : 320) : 0,
 
-          x: isMobile && !isSidebarOpen ? -320 : 0
+          x: isMobile && !isSidebarOpen ? -280 : 0
 
         }}
 
@@ -3894,39 +3901,38 @@ function MessagesPage() {
 
         <div className="flex flex-col h-full min-h-0">
 
-          <div className="px-4 pt-5 pb-4 border-b border-emerald-400/10 bg-[rgba(20,30,40,0.45)] backdrop-blur-md sticky top-0 z-10">
+          <div className={cn(
+            "px-4 pb-4 border-b border-[rgba(0,255,180,0.10)] bg-[rgba(20,30,40,0.55)] backdrop-blur-md sticky top-0 z-10",
+            isMobile ? "pt-7" : "pt-5"
+          )}>
 
             <div className="flex items-center justify-between mb-4">
 
               <div className="flex items-center gap-2.5">
 
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shadow shadow-emerald-200">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
 
                   <MessageSquare className="w-4 h-4 text-white" />
 
                 </div>
 
-                <h2 className="text-lg font-bold text-[#E6EDF3] tracking-tight">Messages</h2>
+                <h2 className="text-lg font-bold text-white tracking-tight">Messages</h2>
 
               </div>
 
               {isMobile && (
 
-                <Button
-
-                  variant="ghost"
-
-                  size="icon"
-
-                  className="rounded-full hover:bg-emerald-50 text-emerald-600"
+                <button
 
                   onClick={() => setIsSidebarOpen(false)}
 
+                  className="rounded-full border border-[rgba(0,255,180,0.14)] bg-[rgba(20,30,40,0.55)] p-2 text-[#E6EDF3] transition hover:bg-[rgba(20,30,40,0.75)]"
+
                 >
 
-                  <ArrowLeft className="w-5 h-5" />
+                  <X className="h-4 w-4" />
 
-                </Button>
+                </button>
 
               )}
 
@@ -3934,15 +3940,15 @@ function MessagesPage() {
 
             <div className="relative">
 
-              <Search className="absolute left-3.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-emerald-300 z-10" />
+              <Search className="absolute left-3.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-emerald-300/50 z-10" />
 
-              <Input
+              <input
 
                 type="text"
 
                 placeholder="Search conversations..."
 
-                className="relative z-10 pl-10 pr-8 rounded-2xl bg-emerald-950/40 border border-emerald-400/20 focus-visible:ring-2 focus-visible:ring-emerald-500/30 focus:border-emerald-500/60 shadow-inner h-10 text-sm text-[#E6EDF3] placeholder:text-emerald-100/40 transition-all duration-200"
+                className="w-full relative z-10 pl-10 pr-8 rounded-xl bg-[rgba(20,30,40,0.55)] border border-emerald-400/25 focus:outline-none focus:ring-2 focus:ring-emerald-400/30 focus:border-emerald-400/50 h-10 text-sm text-white placeholder:text-emerald-300/70 transition-all duration-200"
 
                 value={searchQuery}
 
@@ -3954,13 +3960,13 @@ function MessagesPage() {
 
                 <button
 
-                  className="absolute right-3 top-1/2 -translate-y-1/2 z-10 p-0.5 rounded-full hover:bg-emerald-50 text-gray-400 hover:text-gray-600 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 z-10 p-1 rounded-full hover:bg-[rgba(20,30,40,0.75)] text-[#E6EDF3] transition-colors"
 
                   onClick={() => setSearchQuery('')}
 
                 >
 
-                  <X className="w-3.5 h-3.5" />
+                  <X className="w-3 h-3" />
 
                 </button>
 
@@ -3972,7 +3978,7 @@ function MessagesPage() {
 
 
 
-          <div className="flex-1 bg-transparent min-h-0 overflow-y-auto sidebar-scrollbar admin-sidebar-scrollbar py-2">
+          <div className="flex-1 bg-transparent min-h-0 overflow-y-auto sidebar-scrollbar admin-sidebar-scrollbar pt-2 pb-24">
 
               {isLoadingUsers ? (
 
@@ -3980,7 +3986,7 @@ function MessagesPage() {
 
                   <div className="text-center">
 
-                    <Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-3" />
+                    <Loader2 className="w-8 h-8 animate-spin text-emerald-400 mx-auto mb-3" />
 
                     <p className="text-sm text-gray-500">Loading conversations...</p>
 
@@ -3992,9 +3998,9 @@ function MessagesPage() {
 
                 <div className="p-8 text-center">
 
-                  <div className="w-16 h-16 bg-gradient-to-br from-emerald-900/40 to-green-950/40 border border-emerald-800/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <div className="w-16 h-16 bg-gradient-to-br from-emerald-950/40 to-green-950/40 border border-emerald-800/30 rounded-full flex items-center justify-center mx-auto mb-4">
 
-                    <Users className="w-8 h-8 text-gray-400" />
+                    <Users className="w-8 h-8 text-emerald-400" />
 
                   </div>
 
@@ -4032,7 +4038,11 @@ function MessagesPage() {
 
                         participantIds.includes(String(currentUser?.id));
 
-                    });
+                      });
+
+
+
+                    const active = selectedParticipant?.id === user.id || (existingConversation?.id && String(conversationId) === String(existingConversation.id));
 
 
 
@@ -4048,11 +4058,11 @@ function MessagesPage() {
 
                         transition={{ delay: index * 0.03 }}
 
-                        className={`relative group cursor-pointer transition-all duration-300 rounded-2xl mx-2 my-1 border ${selectedParticipant?.id === user.id || (existingConversation?.id && String(conversationId) === String(existingConversation.id))
+                        className={`relative group cursor-pointer transition-all duration-300 rounded-xl mx-2 my-1 border ${active
 
                            ? 'bg-gradient-to-r from-emerald-500/20 to-green-500/20 border border-emerald-400/30 text-white shadow-lg shadow-emerald-500/20'
 
-                           : 'border border-transparent text-[#E6EDF3] hover:bg-emerald-500/10 hover:text-white hover:border-emerald-400/20 bg-emerald-950/5'
+                           : 'border border-transparent text-[#E6EDF3] hover:bg-emerald-500/10 hover:text-white hover:border-emerald-400/20'
 
                           }`}
 
@@ -4086,7 +4096,7 @@ function MessagesPage() {
 
                               <img
 
-                                className="h-14 w-14 rounded-full ring-2 ring-white shadow-lg object-cover"
+                                className="h-14 w-14 rounded-full ring-2 ring-emerald-500/20 group-hover:ring-emerald-500/50 transition-all shadow-lg object-cover"
 
                                 src={getAvatarUrl(user)}
 
@@ -4096,7 +4106,7 @@ function MessagesPage() {
 
                             ) : (
 
-                              <div className="h-14 w-14 rounded-full bg-emerald-500 flex items-center justify-center ring-2 ring-white shadow-lg">
+                              <div className="h-14 w-14 rounded-full bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center ring-2 ring-emerald-500/20 group-hover:ring-emerald-500/50 transition-all shadow-lg">
 
                                 <span className="text-white font-bold text-lg">
 
@@ -4114,7 +4124,7 @@ function MessagesPage() {
 
                             {user.is_online && (
 
-                              <span className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white shadow-lg">
+                              <span className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-emerald-950 shadow-lg">
 
                                 <span className="absolute inset-0 w-5 h-5 bg-green-500 rounded-full animate-ping opacity-75"></span>
 
@@ -4128,7 +4138,7 @@ function MessagesPage() {
 
                             {(existingConversation?.unread_count ?? 0) > 0 && (
 
-                              <span className="absolute -top-2 -right-2 min-w-[1.5rem] h-6 px-1.5 bg-gradient-to-br from-emerald-500 to-green-600 rounded-full flex items-center justify-center border-2 border-white shadow-lg">
+                              <span className="absolute -top-2 -right-2 min-w-[1.5rem] h-6 px-1.5 bg-gradient-to-r from-red-500 to-pink-500 rounded-full flex items-center justify-center border-2 border-emerald-950 shadow-lg">
 
                                 <span className="text-white text-[10px] font-black tracking-tight">
 
@@ -4188,11 +4198,11 @@ function MessagesPage() {
 
                                   "inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black tracking-widest uppercase shadow-sm",
 
-                                  user.user_type === 'vendor' ? "bg-emerald-950/60 border border-emerald-800/40 text-emerald-400" :
+                                  user.user_type === 'vendor' ? "bg-blue-950/60 border border-blue-800/40 text-blue-300" :
 
-                                    user.user_type === 'administrator' ? "bg-slate-800/60 border border-slate-700/30 text-slate-300" :
+                                    user.user_type === 'administrator' ? "bg-purple-950/60 border border-purple-800/40 text-purple-300" :
 
-                                      "bg-emerald-950/20 border border-emerald-900/30 text-emerald-300"
+                                      "bg-slate-800/60 border border-slate-700/35 text-slate-300"
 
                                 )}>
 
@@ -4208,9 +4218,9 @@ function MessagesPage() {
 
                               {user.is_online && (
 
-                                <span className="flex items-center gap-1 text-[10px] text-emerald-600 font-bold">
+                                <span className="flex items-center gap-1 text-[10px] text-emerald-400 font-medium">
 
-                                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                                  <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
 
                                   Online
 
@@ -4230,7 +4240,7 @@ function MessagesPage() {
 
                                 "text-sm truncate",
 
-                                existingConversation?.unread_count ? "text-emerald-400 font-bold" : "text-gray-500"
+                                existingConversation?.unread_count ? "text-emerald-300 font-bold" : "text-emerald-100/60"
 
                               )}>
 
@@ -4250,17 +4260,11 @@ function MessagesPage() {
 
                           {/* Selection Indicator */}
 
-                          {selectedParticipant?.id === user.id && (
+                          {active && (
 
                             <div className="absolute right-4 top-1/2 -translate-y-1/2">
 
-                              <motion.div
-
-                                layoutId="selection-dot"
-
-                                className="w-2 h-2 bg-emerald-500 rounded-full shadow-[0_0_12px_rgba(16,185,129,0.5)]"
-
-                              />
+                              <div className="w-2 h-2 bg-emerald-300 rounded-full animate-pulse shadow-lg shadow-emerald-500/50"></div>
 
                             </div>
 
@@ -4295,8 +4299,10 @@ function MessagesPage() {
           <div className="flex flex-col flex-1 min-h-0 min-w-0">
 
             {/* Chat header */}
-
-            <div className="bg-[#0F151F]/80 backdrop-blur-xl border-b border-gray-800/60 px-3 sm:px-5 py-3 sm:py-4 flex-shrink-0 z-40 shadow-[0_4px_24px_rgba(0,0,0,0.2)] mt-4 sm:mt-6 mx-1 sm:mx-2 rounded-t-2xl">
+            <div className={cn(
+              "bg-[#131C2E]/90 backdrop-blur-xl border-b border-emerald-500/10 px-4 sm:px-6 py-3 sm:py-4 flex-shrink-0 z-40 shadow-sm",
+              isMobile ? "rounded-t-xl" : "rounded-t-2xl border-t border-x border-slate-800/60"
+            )}>
 
               <div className="flex items-center">
 
@@ -4427,8 +4433,13 @@ function MessagesPage() {
 
 
             {/* Messages */}
-
-            <div ref={messagesContainerRef} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 space-y-4 bg-[#070B0F] pb-4 shadow-inner">
+            <div
+              ref={messagesContainerRef}
+              className={cn(
+                "flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 md:p-6 space-y-4 bg-gradient-to-b from-[#0B111E] via-[#0F1827] to-[#0A0F1A] pb-6 shadow-inner chat-scrollbar",
+                !isMobile && "border-x border-slate-800/60"
+              )}
+            >
 
               {isLoadingMessages ? (
 
@@ -4545,10 +4556,8 @@ function MessagesPage() {
                           (() => { const c = msg.content; const isImg = c.match(/\[ATTACHMENT:/) && (() => { try { return JSON.parse(c.match(/\[ATTACHMENT:(.+?)\]/)?.[1] || '{}').isImage; } catch { return false; } })(); return isImg ? 'p-0' : 'px-4 py-3'; })(),
 
                           msg.sender_id === currentUser?.id
-
-                            ? 'bg-gradient-to-br from-emerald-600 to-emerald-700 text-white rounded-tr-sm shadow-lg shadow-emerald-950/20 border border-emerald-500/20'
-
-                            : 'bg-[#0F151F] border border-gray-800/80 text-[#E6EDF3] rounded-tl-sm shadow-md shadow-black/20',
+                            ? 'bg-gradient-to-br from-[#10B981] to-[#059669] text-white rounded-2xl rounded-tr-none shadow-[0_4px_12px_rgba(16,185,129,0.15)] border border-emerald-400/20 font-medium'
+                            : 'bg-[#1E293B] border border-slate-700/60 text-[#F1F5F9] rounded-2xl rounded-tl-none shadow-md shadow-black/30 font-medium',
 
                           msg.sender_id !== currentUser?.id ? 'ml-9 md:ml-10' : 'mr-9 md:mr-10'
 
@@ -4607,6 +4616,56 @@ function MessagesPage() {
                         {(() => {
 
                           const content = msg.content;
+
+                          // Helper to format last message preview in the sidebar (handles attachments cleanly)
+
+                          const formatLastMessage = (content?: string): string => {
+
+                            if (!content) return '';
+
+
+
+                            if (content.includes('[ATTACHMENT:')) {
+
+                              const isImage = content.includes('"isImage":true') || 
+
+                                              content.includes('"fileType":"image') || 
+
+                                              content.toLowerCase().includes('.png') || 
+
+                                              content.toLowerCase().includes('.jpg') || 
+
+                                              content.toLowerCase().includes('.jpeg') || 
+
+                                              content.toLowerCase().includes('.webp') || 
+
+                                              content.toLowerCase().includes('.gif');
+
+                              const prefix = isImage ? '📷 Image' : '📁 File';
+
+
+
+                              const attachmentIndex = content.indexOf('[ATTACHMENT:');
+
+                              const textBefore = content.substring(0, attachmentIndex).trim();
+
+
+
+                              if (textBefore) {
+
+                                return `${prefix}: ${textBefore}`;
+
+                              }
+
+                              return prefix;
+
+                            }
+
+
+
+                            return content;
+
+                          };
 
                           const attachmentMatch = content.match(/\[ATTACHMENT:(.+?)\]/);
 
@@ -4870,17 +4929,10 @@ function MessagesPage() {
             {/* Message input - pinned at bottom by flex column layout */}
 
             <div
-
               className={cn(
-
-                "flex-shrink-0 bg-[#0B0F14] border-t border-gray-800/80 z-40",
-
-                isMobile ? "p-2" : "p-4 sm:mx-2 sm:mb-6 sm:rounded-b-2xl border-x border-b border-gray-800/60 bg-[#0F151F]/80 backdrop-blur-xl"
-
+                "flex-shrink-0 border-t border-emerald-500/10 bg-[#131C2E]/90 backdrop-blur-xl z-40",
+                isMobile ? "p-3" : "p-4 px-6 rounded-b-2xl border-b border-x border-slate-800/60"
               )}
-
-
-
             >
 
               {/* File preview */}
@@ -5052,15 +5104,10 @@ function MessagesPage() {
                             placeholder={editingMessageId ? 'Revise your message...' : 'Message...'}
 
                             className={cn(
-
-                              "w-full min-h-[40px] max-h-32 overflow-y-hidden resize-none py-2.5 text-[16px] transition-all placeholder:text-gray-500 outline-none text-white",
-
+                              "w-full min-h-[40px] max-h-32 overflow-y-hidden resize-none py-2.5 text-[16px] transition-all placeholder:text-slate-400 outline-none text-white transition-colors",
                               !isInputFocused && !inputHasText && !selectedFile
-
-                                ? "bg-gray-900/60 rounded-full px-4 pr-10 border-none"
-
-                                : "bg-gray-900 rounded-[20px] px-4 pr-16 border border-gray-800/80 shadow-sm"
-
+                                ? "bg-[#0D1527] border border-emerald-500/20 rounded-full px-4 pr-10"
+                                : "bg-[#0B111E] rounded-[20px] px-4 pr-16 border border-emerald-500/70 shadow-[0_0_10px_rgba(16,185,129,0.15)]"
                             )}
 
                             rows={1}
@@ -5264,17 +5311,13 @@ function MessagesPage() {
                       <>
 
                         <textarea
-
                           ref={textareaRef}
-
                           placeholder={editingMessageId ? 'Revise your message...' : 'Message...'}
-
                           className={cn(
-
-                            "w-full min-h-[46px] max-h-40 overflow-y-hidden resize-none py-3 bg-gray-900/60 border border-gray-800/80 focus:bg-gray-900 focus:border-emerald-500/60 focus:ring-4 focus:ring-emerald-500/10 text-[15px] transition-all shadow-inner placeholder:text-gray-500 text-white",
-
-                            !isInputFocused && !inputHasText ? "rounded-full px-5 pr-8" : "rounded-[24px] px-4 pr-8"
-
+                            "w-full min-h-[46px] max-h-40 overflow-y-hidden resize-none py-3 text-[15px] transition-all placeholder:text-slate-400 outline-none text-white transition-colors shadow-inner",
+                            !isInputFocused && !inputHasText
+                              ? "bg-[#0D1527] border border-emerald-500/20 rounded-full px-5 pr-8"
+                              : "bg-[#0B111E] border border-emerald-500/70 shadow-[0_0_10px_rgba(16,185,129,0.15)] rounded-[24px] px-4 pr-8"
                           )}
 
                           rows={1}

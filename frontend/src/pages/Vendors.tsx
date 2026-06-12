@@ -23,10 +23,13 @@ const Vendors = () => {
           },
         });
 
-        // Extract vendors array from response
-        const vendors = Array.isArray(response.data)
+        // Extract users array from response
+        const allUsers = Array.isArray(response.data)
           ? response.data
           : (response.data?.results || response.data?.data || []);
+
+        // Filter to ensure only users of type 'vendor' are returned
+        const vendors = allUsers.filter((user: any) => user && user.user_type === 'vendor');
 
         return vendors;
         

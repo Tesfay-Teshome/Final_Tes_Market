@@ -367,9 +367,32 @@
     background: linear-gradient(180deg, rgba(0, 229, 168, 0.85), rgba(0, 200, 150, 0.75));
 
     box-shadow: 0 0 10px rgba(0, 255, 180, 0.22);
-
   }
 
+  /* Elegant Dark Scrollbar for Chat Area */
+  .chat-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(16, 185, 129, 0.4) rgba(15, 21, 31, 0.2);
+  }
+
+  .chat-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .chat-scrollbar::-webkit-scrollbar-track {
+    background: rgba(15, 21, 31, 0.2);
+    border-radius: 9999px;
+  }
+
+  .chat-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(16, 185, 129, 0.35);
+    border-radius: 9999px;
+  }
+
+  .chat-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(16, 185, 129, 0.65);
+  }
 }
 
 
