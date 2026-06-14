@@ -360,7 +360,7 @@ def admin_order_management(request, order_id=None):
             # Filter by approval status
             approval_status = request.query_params.get('approval_status')
             if approval_status == 'pending':
-                orders = orders.filter(admin_approved=False, status='awaiting_approval')
+                orders = orders.filter(admin_approved=False, status__in=['pending', 'awaiting_approval'])
             elif approval_status == 'approved':
                 orders = orders.filter(admin_approved=True)
             
@@ -371,28 +371,43 @@ def admin_order_management(request, order_id=None):
         # Approve/reject order
         order = get_object_or_404(Order, id=order_id)
         action = request.data.get('action')
-        
+
         if action == 'approve':
+            # Check if order is already approved
+            if order.admin_approved:
+                return Response({'error': 'Order is already approved'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Check if order is rejected
+            if order.status == 'rejected':
+                return Response({'error': 'Cannot approve a rejected order'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Check if order has items
+            if not order.items.exists():
+                return Response({'error': 'Order has no items'}, status=status.HTTP_400_BAD_REQUEST)
+
             order.admin_approved = True
             order.admin_approved_by = request.user
             order.admin_approval_date = timezone.now()
             order.vendor_can_process = True
+            # Transition to approved status
             order.status = 'approved'
             order.admin_notes = request.data.get('admin_notes', '')
             order.save()
-            
+
             # Create notification for vendor
             try:
-                Notification.objects.create(
-                    user=order.items.first().product.vendor,
-                    title='Order Approved',
-                    message=f'Order #{order.id} has been approved and is ready for processing.',
-                    notification_type='order',
-                    related_id=str(order.id),
-                )
-            except Exception:
-                pass
-            
+                first_item = order.items.first()
+                if first_item and first_item.product and first_item.product.vendor:
+                    Notification.objects.create(
+                        user=first_item.product.vendor,
+                        title='Order Approved',
+                        message=f'Order #{order.id} has been approved and is ready for processing.',
+                        notification_type='order',
+                        related_id=str(order.id),
+                    )
+            except Exception as e:
+                logger.warning(f"Failed to create notification for order {order.id}: {str(e)}")
+
             return Response({'message': 'Order approved successfully'})
         
         elif action == 'reject':
