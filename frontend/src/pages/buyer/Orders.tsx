@@ -736,7 +736,7 @@ const Orders = () => {
 
             <h3 className="text-2xl font-black text-white tracking-tighter">
 
-              {orders.filter((o: any) => o.status === 'pending' || o.status === 'awaiting_approval').length}
+              {orders.filter((o: any) => !o.admin_approved || o.status === 'pending' || o.status === 'awaiting_approval').length}
 
             </h3>
 

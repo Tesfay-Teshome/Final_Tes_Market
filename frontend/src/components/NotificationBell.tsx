@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Bell, MessageCircle, Package, ShoppingCart, User, X } from 'lucide-react';
 import { notificationsAPI, messagingAPI } from '@/services/api';
@@ -20,16 +20,19 @@ interface Notification {
 const NotificationBell = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { isAuthenticated } = useSelector((state: RootState) => state.auth);
+  const queryClient = useQueryClient();
 
-  // Fetch notifications
-  const { data: notifications = [] } = useQuery<Notification[]>({
+  // Fetch notifications — refetch immediately when dropdown opens
+  const { data: notifications = [], refetch } = useQuery<Notification[]>({
     queryKey: ['notifications'],
     queryFn: async () => {
       const response = await notificationsAPI.getAll();
       return response.data || [];
     },
     enabled: isAuthenticated,
-    refetchInterval: 30000, // Refetch every 30 seconds
+    refetchInterval: 30000,
+    staleTime: 0,        // always treat cached data as stale
+    refetchOnWindowFocus: true,
   });
 
   // Fetch unread message count
@@ -45,6 +48,12 @@ const NotificationBell = () => {
 
   const unreadNotifications = notifications.filter(n => !n.is_read);
   const totalUnreadCount = unreadNotifications.length + unreadMessageCount;
+
+  // Always show unread first, then newest-first within each group
+  const sortedNotifications = [...notifications].sort((a, b) => {
+    if (a.is_read !== b.is_read) return a.is_read ? 1 : -1;
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -78,6 +87,10 @@ const NotificationBell = () => {
     if (!notification.is_read) {
       try {
         await notificationsAPI.markAsRead(notification.id);
+        // Immediately refresh so count badge and sort order update
+        queryClient.invalidateQueries({ queryKey: ['notifications'] });
+        queryClient.invalidateQueries({ queryKey: ['sidebar-unread-count'] });
+        queryClient.invalidateQueries({ queryKey: ['vendor-notifications-popup'] });
       } catch (error) {
         console.error('Failed to mark notification as read:', error);
       }
@@ -88,6 +101,9 @@ const NotificationBell = () => {
   const markAllAsRead = async () => {
     try {
       await notificationsAPI.markAllAsRead();
+      // Immediately refresh bell + sidebar badge
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['sidebar-unread-count'] });
     } catch (error) {
       console.error('Failed to mark all notifications as read:', error);
     }
@@ -100,7 +116,11 @@ const NotificationBell = () => {
   return (
     <div className="relative">
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          const next = !isOpen;
+          setIsOpen(next);
+          if (next) refetch(); // always load fresh data when opening
+        }}
         className="relative p-2 text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-full transition-colors"
       >
         <Bell className="h-6 w-6" />
@@ -172,14 +192,14 @@ const NotificationBell = () => {
                 </Link>
               )}
 
-              {/* Other Notifications */}
-              {notifications.length === 0 ? (
+              {/* Notifications — unread first, then newest first */}
+              {sortedNotifications.length === 0 ? (
                 <div className="px-4 py-8 text-center text-gray-500">
                   <Bell className="h-8 w-8 mx-auto mb-2 text-gray-300" />
                   <p className="text-sm">No notifications yet</p>
                 </div>
               ) : (
-                notifications.map((notification) => (
+                sortedNotifications.map((notification) => (
                   <Link
                     key={notification.id}
                     to={getNotificationLink(notification)}

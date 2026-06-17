@@ -202,11 +202,11 @@ def public_store_reviews(request, slug: str):
         
         # Create notification for vendor
         Notification.objects.create(
-            user=store.vendor,
+            recipient=store.vendor,
             title='New Storefront Review',
             message=f'{request.user.email} left a review for your store. It requires your approval.',
             notification_type='store_review',
-            related_id=str(review.id),
+            related_order_id=review.id,
             requires_confirmation=True,
             is_read=False
         )
@@ -225,9 +225,9 @@ def vendor_approve_review(request, review_id: int):
         
     # mark notification as confirmed
     Notification.objects.filter(
-        user=request.user, 
+        recipient=request.user, 
         notification_type='store_review', 
-        related_id=str(review_id)
+        related_order_id=review_id
     ).update(confirmed_by_vendor=True, confirmed_at=timezone.now(), is_read=True)
     
     from django.contrib.auth import get_user_model
@@ -235,11 +235,11 @@ def vendor_approve_review(request, review_id: int):
     admin_users = User.objects.filter(user_type='administrator')
     for admin in admin_users:
         Notification.objects.create(
-            user=admin,
+            recipient=admin,
             title='Storefront Review Approved',
             message=f'Vendor {request.user.username} has approved a storefront review.',
             notification_type='system',
-            related_id=str(review_id)
+            related_order_id=review_id
         )
     
     return Response({'detail': 'Review approved successfully'})
@@ -255,19 +255,9 @@ def vendor_reject_review(request, review_id: int):
         
     # mark notification as confirmed
     Notification.objects.filter(
-        user=request.user, 
+        recipient=request.user, 
         notification_type='store_review', 
-        related_id=str(review_id)
-    ).update(confirmed_by_vendor=True, confirmed_at=timezone.now(), is_read=True)
-    
-    return Response({'detail': 'Review rejected successfully'})
-    review.save()
-    
-    # mark notification as confirmed
-    Notification.objects.filter(
-        user=request.user, 
-        notification_type='store_review', 
-        related_id=str(review.id)
+        related_order_id=review_id
     ).update(confirmed_by_vendor=True, confirmed_at=timezone.now(), is_read=True)
     
     return Response({'detail': 'Review rejected successfully'})

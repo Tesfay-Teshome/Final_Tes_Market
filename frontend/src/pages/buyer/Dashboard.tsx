@@ -57,7 +57,7 @@ const Dashboard = () => {
     const totalOrders = orders.length;
     const pendingOrders = orders.filter((order: any) => {
         console.log(`Order ${order.id}: status="${order.status}", admin_approved=${order.admin_approved}`);
-        return order.status === 'pending' || order.status === 'awaiting_approval';
+        return !order.admin_approved || order.status === 'pending' || order.status === 'awaiting_approval';
     }).length;
     const approvedOrders = orders.filter((order: any) => order.status === 'approved' && order.admin_approved).length;
     const processingOrders = orders.filter((order: any) => order.status === 'processing').length;
@@ -70,7 +70,7 @@ const Dashboard = () => {
         let filtered;
         switch (selectedFilter) {
             case 'pending':
-                filtered = orders.filter((order: any) => order.status === 'pending' || order.status === 'awaiting_approval');
+                filtered = orders.filter((order: any) => !order.admin_approved || order.status === 'pending' || order.status === 'awaiting_approval');
                 break;
             case 'approved':
                 filtered = orders.filter((order: any) => order.status === 'approved' && order.admin_approved);

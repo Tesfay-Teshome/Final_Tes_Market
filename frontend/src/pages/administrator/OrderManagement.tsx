@@ -131,10 +131,27 @@ const OrderManagement = () => {
 
     return {
       total: orders.length,
-      pending: orders.filter((o: Order) => o.status === 'awaiting_approval').length,
+      pending: orders.filter((o: Order) => !o.admin_approved || o.status === 'pending' || o.status === 'awaiting_approval' || o.status === 'payment_confirmed').length,
       approved: orders.filter((o: Order) => o.admin_approved).length,
       revenue: orders.reduce((sum: number, o: Order) => sum + parseFloat(o.total_amount.toString()), 0)
     };
+  }, [orders]);
+
+  // Sort orders to put pending/new orders first
+  const sortedOrders = React.useMemo(() => {
+    if (!orders) return [];
+    return [...orders].sort((a: Order, b: Order) => {
+      // Priority: not admin_approved first, then by status priority, then by date (newest first)
+      const aPriority = !a.admin_approved || a.status === 'pending' || a.status === 'awaiting_approval' || a.status === 'payment_confirmed' ? 1 : 0;
+      const bPriority = !b.admin_approved || b.status === 'pending' || b.status === 'awaiting_approval' || b.status === 'payment_confirmed' ? 1 : 0;
+
+      if (aPriority !== bPriority) {
+        return bPriority - aPriority; // Higher priority first
+      }
+
+      // If same priority, sort by date (newest first)
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
   }, [orders]);
 
   // Approve order mutation
@@ -208,10 +225,34 @@ const OrderManagement = () => {
     },
   });
 
+  // Ship order mutation
+  const shipOrderMutation = useMutation({
+    mutationFn: async ({ orderId, trackingNumber }: { orderId: string; trackingNumber: string }) => {
+      return await adminAPI.shipOrder(orderId, trackingNumber);
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success',
+        description: 'Order marked as shipped',
+      });
+      queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+      setSelectedOrder(null);
+      setTrackingNumber('');
+      setActionType(null);
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to ship order',
+        variant: 'destructive',
+      });
+    },
+  });
+
   // Mark as delivered mutation
   const markDeliveredMutation = useMutation({
     mutationFn: async (orderId: string) => {
-      return await adminAPI.updateOrderStatus(orderId, 'delivered', 'Order marked as delivered by admin');
+      return await adminAPI.completeOrder(orderId);
     },
     onSuccess: () => {
       toast({
@@ -558,7 +599,7 @@ const OrderManagement = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {orders.slice(0, 4).map((order: Order) => (
+                  {sortedOrders.slice(0, 4).map((order: Order) => (
                     <Card key={order.id} className="overflow-hidden hover:shadow-xl hover:shadow-emerald-900/10 transition-all duration-300 bg-gray-900/40 border border-gray-700/50 backdrop-blur-md">
 
                       {/* Card Header */}
@@ -716,39 +757,7 @@ const OrderManagement = () => {
                                 </motion.button>
                               )}
 
-                              {/* START PROCESSING BUTTON - Show for approved orders */}
-                              {order.admin_approved && (order.status === 'approved' || order.status === 'pending') && (
-                                <motion.button
-                                  onClick={() => processOrderMutation.mutate(order.id)}
-                                  disabled={processOrderMutation.isPending}
-                                  className="w-full inline-flex items-center justify-center px-3 py-1.5 text-xs rounded-lg font-bold transition-all duration-300 shadow bg-emerald-600 border border-emerald-500 text-white hover:bg-emerald-500 disabled:opacity-50"
-                                  whileHover={{ scale: 1.02 }}
-                                  whileTap={{ scale: 0.98 }}
-                                >
-                                  {processOrderMutation.isPending ? (
-                                    <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                                  ) : (
-                                    <PlayCircle className="h-3.5 w-3.5 mr-1.5" />
-                                  )}
-                                  Process Order
-                                </motion.button>
-                              )}
 
-                              {/* MARK AS SHIPPED BUTTON - Show for processing orders */}
-                              {order.status === 'processing' && (
-                                <motion.button
-                                  onClick={() => {
-                                    setSelectedOrder(order);
-                                    setActionType('details');
-                                  }}
-                                  className="w-full inline-flex items-center justify-center px-3 py-1.5 text-xs rounded-lg font-bold transition-all duration-300 shadow bg-emerald-600 border border-emerald-500 text-white hover:bg-emerald-500"
-                                  whileHover={{ scale: 1.02 }}
-                                  whileTap={{ scale: 0.98 }}
-                                >
-                                  <Truck className="h-3.5 w-3.5 mr-1.5" />
-                                  Mark Shipped
-                                </motion.button>
-                              )}
 
                               {/* MARK AS DELIVERED BUTTON - Show for shipped orders */}
                               {order.status === 'shipped' && (
@@ -840,7 +849,6 @@ const OrderManagement = () => {
                       <h3 className="text-lg font-semibold text-emerald-300 flex items-center gap-2">
                         {actionType === 'approve' && <><CheckCircle2 className="h-5 w-5" /> Approve Order</>}
                         {actionType === 'reject' && <><XCircle className="h-5 w-5 text-red-400" /> Reject Order</>}
-                        {actionType === 'process' && <><PlayCircle className="h-5 w-5" /> Start Processing</>}
                         {actionType === 'complete' && <><CheckCircle2 className="h-5 w-5" /> Complete Order</>}
                       </h3>
 
@@ -856,8 +864,7 @@ const OrderManagement = () => {
                           placeholder={
                             actionType === 'approve' ? 'Add notes about this approval...' :
                               actionType === 'reject' ? 'Please provide a reason for rejection...' :
-                                actionType === 'process' ? 'Add notes about processing...' :
-                                  'Add completion notes...'
+                                'Add completion notes...'
                           }
                         />
                       </div>

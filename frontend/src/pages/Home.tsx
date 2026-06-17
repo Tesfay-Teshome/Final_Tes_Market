@@ -141,7 +141,7 @@ const Home = () => {
       id: '1',
       name: 'Meskerem Dejene',
       role: 'Regular Customer',
-      image: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face',
+      image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face',
       content: "Amazing products and fast delivery! I've been shopping here for months and never been disappointed.",
       rating: 5,
       is_active: true,

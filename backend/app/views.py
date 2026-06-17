@@ -46,35 +46,6 @@ logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
-class LoginView(generics.GenericAPIView):
-    """Login endpoint - accepts email + password, returns JWT tokens and user data."""
-    serializer_class = LoginSerializer
-    permission_classes = [permissions.AllowAny]
-
-    def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data, context={'request': request})
-        try:
-            serializer.is_valid(raise_exception=True)
-        except Exception as e:
-            logger.warning(f"Login failed from IP: {request.META.get('REMOTE_ADDR')}: {e}")
-            return Response({'detail': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
-
-        user = serializer.validated_data['user']
-
-        # Block inactive users
-        if not user.is_active:
-            return Response({'detail': 'Account is disabled. Please contact support.'}, status=status.HTTP_403_FORBIDDEN)
-
-        refresh = RefreshToken.for_user(user)
-        user_serializer = UserSerializer(user, context={'request': request})
-
-        logger.info(f"Login successful for user {user.email} from IP: {request.META.get('REMOTE_ADDR')}")
-        return Response({
-            'user': user_serializer.data,
-            'access_token': str(refresh.access_token),
-            'refresh_token': str(refresh),
-        }, status=status.HTTP_200_OK)
-
 
 class RegisterView(generics.CreateAPIView):
 
@@ -323,11 +294,11 @@ def stripe_webhook(request):
                     # Notify buyer
                     try:
                         Notification.objects.create(
-                            user=order.user,
+                            recipient=order.user,
                             title='Payment received',
                             message=f'Your payment for order #{order.id} was received.',
                             notification_type='order',
-                            related_id=str(order.id),
+                            related_order_id=order.id,
                         )
                     except Exception:
                         pass
@@ -394,19 +365,34 @@ def admin_order_management(request, order_id=None):
             order.admin_notes = request.data.get('admin_notes', '')
             order.save()
 
-            # Create notification for vendor
+            # Notify ALL unique vendors who have items in this order
             try:
-                first_item = order.items.first()
-                if first_item and first_item.product and first_item.product.vendor:
-                    Notification.objects.create(
-                        user=first_item.product.vendor,
-                        title='Order Approved',
-                        message=f'Order #{order.id} has been approved and is ready for processing.',
-                        notification_type='order',
-                        related_id=str(order.id),
-                    )
+                notified_vendor_ids = set()
+                for item in order.items.select_related('product__vendor').all():
+                    if item.product and item.product.vendor:
+                        v = item.product.vendor
+                        if v.id not in notified_vendor_ids:
+                            notified_vendor_ids.add(v.id)
+                            notif = Notification.objects.create(
+                                recipient=v,
+                                title='\U0001f4e6 New Order Ready for Processing',
+                                message=(
+                                    f'Order #{order.id} has been approved by the administrator and '
+                                    f'is ready for your action. Please visit your Order Management '
+                                    f'page to start processing immediately.'
+                                ),
+                                notification_type='order_approved',
+                                related_order_id=order.id,
+                                requires_confirmation=True,
+                            )
+                            logger.info(
+                                f"Notified vendor {v.username} (id={v.id}) for order {order.id} "
+                                f"(notification id={notif.id})"
+                            )
+                if not notified_vendor_ids:
+                    logger.warning(f"No vendors found to notify for order {order.id}")
             except Exception as e:
-                logger.warning(f"Failed to create notification for order {order.id}: {str(e)}")
+                logger.error(f"Failed to create vendor notifications for order {order.id}: {str(e)}", exc_info=True)
 
             return Response({'message': 'Order approved successfully'})
         
@@ -422,11 +408,11 @@ def admin_order_management(request, order_id=None):
             # Create notification for customer
             try:
                 Notification.objects.create(
-                    user=order.user,
+                    recipient=order.user,
                     title='Order Rejected',
                     message=f'Order #{order.id} has been rejected by administration. {order.admin_notes}',
-                    notification_type='order',
-                    related_id=str(order.id),
+                    notification_type='order_rejected',
+                    related_order_id=order.id,
                 )
             except Exception:
                 pass
@@ -441,48 +427,70 @@ def admin_order_management(request, order_id=None):
             if not new_status:
                 return Response({'error': 'Status is required'}, status=status.HTTP_400_BAD_REQUEST)
             
-            # Valid status transitions for admin
-            valid_statuses = ['processing', 'shipped', 'delivered', 'completed', 'cancelled', 'rejected']
+            # ---- Admin-only valid transitions ----
+            # IMPORTANT: 'processing' and 'shipped' are VENDOR-ONLY transitions.
+            # Admin can only: cancel/reject early-stage orders, confirm delivery, complete.
+            valid_statuses = ['delivered', 'completed', 'cancelled', 'rejected']
             if new_status not in valid_statuses:
-                return Response({'error': f'Invalid status. Valid options: {", ".join(valid_statuses)}'}, status=status.HTTP_400_BAD_REQUEST)
-            
-            # Validate status transitions
+                return Response(
+                    {
+                        'error': (
+                            f'Invalid status for admin. Valid options: {", ".join(valid_statuses)}. '
+                            f'Note: \'processing\' and \'shipped\' are vendor-only transitions.'
+                        )
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # Strict per-status transition map (admin scope only)
             current_status = order.status
             valid_transitions = {
-                'approved': ['processing', 'cancelled', 'rejected'],
-                'processing': ['shipped', 'completed', 'cancelled'],
-                'shipped': ['delivered', 'completed', 'cancelled'],
-                'delivered': ['completed'],
-                'completed': [],  # Final status
-                'cancelled': [],  # Final status
-                'rejected': [],  # Final status
+                'pending':           ['cancelled', 'rejected'],
+                'payment_confirmed': ['cancelled', 'rejected'],
+                'awaiting_approval': ['cancelled', 'rejected'],
+                'approved':          ['cancelled', 'rejected'],
+                'processing':        ['cancelled'],
+                'shipped':           ['delivered', 'cancelled'],
+                'delivered':         ['completed'],
+                'completed':         [],
+                'cancelled':         [],
+                'rejected':          [],
             }
-            
-            if current_status in valid_transitions:
-                if new_status not in valid_transitions[current_status] and new_status != 'cancelled':
-                    return Response({
-                        'error': f'Cannot transition from {current_status} to {new_status}. Valid transitions: {", ".join(valid_transitions[current_status]) if valid_transitions[current_status] else "None (final status)"}'
-                    }, status=status.HTTP_400_BAD_REQUEST)
-            
-            # Additional validations
+
+            allowed = valid_transitions.get(current_status, [])
+            if new_status not in allowed:
+                return Response(
+                    {
+                        'error': (
+                            f'Cannot transition from \'{current_status}\' to \'{new_status}\'. '
+                            f'Allowed: {", ".join(allowed) if allowed else "None — this is a final status."}'
+                        )
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # Extra guard: delivered only valid after shipped
             if new_status == 'delivered' and current_status != 'shipped':
-                return Response({'error': 'Orders can only be marked as delivered after being shipped'}, status=status.HTTP_400_BAD_REQUEST)
-            
-            if new_status == 'shipped' and current_status not in ['processing', 'approved']:
-                return Response({'error': 'Orders can only be marked as shipped after being completed or approved'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {'error': 'Order must be in \'shipped\' status before marking as delivered.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             
             order.status = new_status
             if admin_notes:
                 order.admin_notes = admin_notes
             order.save()
             
-            # Update VendorEarnings when order is delivered
+            # Update VendorEarnings when order is delivered (wrapped to prevent import errors)
             if new_status == 'delivered':
-                from .models import VendorEarnings
-                for item in order.items.all():
-                    vendor = item.product.vendor
-                    earnings, created = VendorEarnings.objects.get_or_create(vendor=vendor)
-                    earnings.update_from_order(item)
+                try:
+                    from .models import VendorEarnings
+                    for item in order.items.all():
+                        vendor = item.product.vendor
+                        earnings, created = VendorEarnings.objects.get_or_create(vendor=vendor)
+                        earnings.update_from_order(item)
+                except Exception as _ee:
+                    logger.warning(f"VendorEarnings update skipped for order {order.id}: {_ee}")
             
             # Create notification for vendor based on status
             try:
@@ -504,22 +512,22 @@ def admin_order_management(request, order_id=None):
                 
                 # Notify vendor
                 notification = Notification.objects.create(
-                    user=order.items.first().product.vendor,
+                    recipient=order.items.first().product.vendor,
                     title=notification_title,
                     message=notification_message,
                     notification_type='order',
-                    related_id=str(order.id),
+                    related_order_id=order.id,
                     requires_confirmation=(new_status == 'processing'),  # Require confirmation for shipping notifications
                 )
                 
                 # Also notify customer for delivered and completed orders
                 if new_status in ['delivered', 'completed']:
                     Notification.objects.create(
-                        user=order.user,
+                        recipient=order.user,
                         title=notification_title,
                         message=notification_message,
                         notification_type='order',
-                        related_id=str(order.id),
+                        related_order_id=order.id,
                     )
             except Exception:
                 pass
@@ -1295,10 +1303,10 @@ class AdministratorDashboardViewSet(viewsets.ModelViewSet):
             # Create notification for vendor
             try:
                 Notification.objects.create(
-                    user=payout.vendor,
+                    recipient=payout.vendor,
                     title='Payout Request Approved',
                     message=f'Your payout request of ${payout.amount} has been approved and will be completed soon.',
-                    type='payout_approved'
+                    notification_type='payout_approved'
                 )
             except Exception:
                 pass
@@ -1341,10 +1349,10 @@ class AdministratorDashboardViewSet(viewsets.ModelViewSet):
             # Create notification for vendor
             try:
                 Notification.objects.create(
-                    user=payout.vendor,
+                    recipient=payout.vendor,
                     title='Payout Request Rejected',
                     message=f'Your payout request of ${payout.amount} has been rejected. Reason: {payout.admin_notes}',
-                    type='payout_rejected'
+                    notification_type='payout_rejected'
                 )
             except Exception:
                 pass
@@ -1519,9 +1527,32 @@ class VendorOrderViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Order.objects.filter(
+        queryset = Order.objects.filter(
             items__product__vendor=self.request.user
         ).distinct()
+        
+        # Order: pending/unfinished first, then recently completed, then old completed
+        # Pending/unfinished statuses: pending, awaiting_approval, approved, processing, shipped
+        # Completed statuses: delivered, completed
+        from django.db.models import Case, When, IntegerField
+        
+        queryset = queryset.annotate(
+            priority=Case(
+                # High priority (0): pending, awaiting_approval, approved, processing, shipped
+                When(status__in=['pending', 'awaiting_approval', 'approved', 'processing', 'shipped'], then=0),
+                # Medium priority (1): recently completed (within last 7 days)
+                When(
+                    status__in=['delivered', 'completed'],
+                    created_at__gte=timezone.now() - timezone.timedelta(days=7),
+                    then=1
+                ),
+                # Low priority (2): old completed orders
+                default=2,
+                output_field=IntegerField(),
+            )
+        ).order_by('priority', '-created_at')
+        
+        return queryset
     
     @action(detail=True, methods=['post'])
     def start_processing(self, request, pk=None):
@@ -1547,14 +1578,28 @@ class VendorOrderViewSet(viewsets.ReadOnlyModelViewSet):
         # Notify customer
         try:
             Notification.objects.create(
-                user=order.user,
+                recipient=order.user,
                 title='Order Processing Started',
                 message=f'Your order #{order.id} is now being completed.',
-                notification_type='order',
-                related_id=str(order.id),
+                notification_type='order_processing_started',
+                related_order_id=order.id,
             )
-        except Exception:
-            pass
+            logger.info(f"Created processing notification for customer {order.user.username} for order {order.id}")
+        except Exception as e:
+            logger.error(f"Failed to create processing notification for customer: {str(e)}", exc_info=True)
+        
+        # Notify vendor that they have started processing
+        try:
+            Notification.objects.create(
+                recipient=request.user,
+                title='Order Processing Started',
+                message=f'You have started processing order #{order.id}. Please ship it to the customer.',
+                notification_type='order_processing_started',
+                related_order_id=order.id,
+            )
+            logger.info(f"Created processing notification for vendor {request.user.username} for order {order.id}")
+        except Exception as e:
+            logger.error(f"Failed to create processing notification for vendor: {str(e)}", exc_info=True)
         
         return Response({'message': 'Order processing started successfully'})
     
@@ -1584,11 +1629,11 @@ class VendorOrderViewSet(viewsets.ReadOnlyModelViewSet):
         # Notify customer
         try:
             Notification.objects.create(
-                user=order.user,
+                recipient=order.user,
                 title='Order Shipped',
                 message=f'Your order #{order.id} has been shipped. Tracking: {tracking_number}',
-                notification_type='order',
-                related_id=str(order.id),
+                notification_type='order_shipped',
+                related_order_id=order.id,
             )
         except Exception:
             pass
@@ -1793,11 +1838,34 @@ class OrderViewSet(viewsets.ModelViewSet):
             return Order.objects.none()
         user = self.request.user
         if user.is_administrator:
-            return Order.objects.all()
+            queryset = Order.objects.all()
         elif user.is_vendor:
-            return Order.objects.filter(items__product__vendor=user).distinct()
+            queryset = Order.objects.filter(items__product__vendor=user).distinct()
         else:
-            return Order.objects.filter(user=user)
+            queryset = Order.objects.filter(user=user)
+        
+        # Order: pending/unfinished first, then recently completed, then old completed
+        # Pending/unfinished statuses: pending, awaiting_approval, approved, processing, shipped
+        # Completed statuses: delivered, completed
+        from django.db.models import Case, When, IntegerField
+        
+        queryset = queryset.annotate(
+            priority=Case(
+                # High priority (0): pending, awaiting_approval, approved, processing, shipped
+                When(status__in=['pending', 'awaiting_approval', 'approved', 'processing', 'shipped'], then=0),
+                # Medium priority (1): recently completed (within last 7 days)
+                When(
+                    status__in=['delivered', 'completed'],
+                    created_at__gte=timezone.now() - timezone.timedelta(days=7),
+                    then=1
+                ),
+                # Low priority (2): old completed orders
+                default=2,
+                output_field=IntegerField(),
+            )
+        ).order_by('priority', '-created_at')
+        
+        return queryset
 
     def create(self, request, *args, **kwargs):
         """Create an order from a list of items {product_id, quantity}.
@@ -1969,6 +2037,122 @@ class OrderViewSet(viewsets.ModelViewSet):
         order.status = new_status
         order.save()
         return Response({'message': f'Order status updated to {new_status}'})
+
+    @action(detail=True, methods=['post'])
+    def approve(self, request, pk=None):
+        """Approve an order - sets admin_approved and allows vendor processing"""
+        if not request.user.is_administrator:
+            return Response(
+                {'error': 'Only administrators can approve orders'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        order = self.get_object()
+        notes = request.data.get('notes', '')
+
+        # Update order approval fields
+        order.admin_approved = True
+        order.admin_approved_by = request.user
+        order.admin_approval_date = timezone.now()
+        order.admin_notes = notes
+        order.vendor_can_process = True  # Allow vendor to process the order
+        order.status = 'approved'
+        order.save()
+
+        # Create notifications for all vendors in this order
+        from .models import Notification, User
+        vendors_notified = set()
+        for item in order.items.all():
+            if item.product.vendor and item.product.vendor.id not in vendors_notified:
+                Notification.objects.create(
+                    recipient=item.product.vendor,
+                    notification_type='order_approved',
+                    title=f'Order #{order.id} Approved',
+                    message=f'Your order #{order.id} has been approved by the administrator. You can now process this order.',
+                    related_order_id=order.id,
+                    related_product_id=item.product.id
+                )
+                vendors_notified.add(item.product.vendor.id)
+
+        # Notify administrators of the order approval
+        admins = User.objects.filter(user_type='administrator')
+        for admin in admins:
+            Notification.objects.create(
+                recipient=admin,
+                notification_type='order_approved',
+                title=f'Order #{order.id} Approved Successfully',
+                message=f'Order #{order.id} has been approved and vendors have been notified to process it.',
+                related_order_id=order.id
+            )
+
+        serializer = self.get_serializer(order)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'])
+    def reject(self, request, pk=None):
+        """Reject an order"""
+        if not request.user.is_administrator:
+            return Response(
+                {'error': 'Only administrators can reject orders'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        order = self.get_object()
+        notes = request.data.get('notes', '')
+
+        # Update order rejection fields
+        order.admin_approved = False
+        order.admin_notes = notes
+        order.status = 'rejected'
+        order.vendor_can_process = False
+        order.save()
+
+        serializer = self.get_serializer(order)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'])
+    def ship(self, request, pk=None):
+        """Mark order as shipped - vendors or admins can do this"""
+        order = self.get_object()
+
+        if not (request.user.is_vendor or request.user.is_administrator):
+            return Response(
+                {'error': 'Only vendors or administrators can mark orders as shipped'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Check if order is approved and can be processed
+        if not order.admin_approved or not order.vendor_can_process:
+            return Response(
+                {'error': 'Order must be approved before shipping'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        tracking_number = request.data.get('tracking_number', '')
+        order.status = 'shipped'
+        order.tracking_number = tracking_number
+        order.shipped_at = timezone.now()
+        order.save()
+
+        serializer = self.get_serializer(order)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'])
+    def complete(self, request, pk=None):
+        """Mark order as delivered/completed - only admins can do this"""
+        if not request.user.is_administrator:
+            return Response(
+                {'error': 'Only administrators can mark orders as completed'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        order = self.get_object()
+        order.status = 'delivered'
+        order.delivered_at = timezone.now()
+        order.save()
+
+        serializer = self.get_serializer(order)
+        return Response(serializer.data)
 
     @action(detail=True, methods=['get'])
     def get_invoice(self, request, pk=None):
@@ -2545,135 +2729,6 @@ class VendorCategoryViewSet(viewsets.ModelViewSet):
         if self.action in ['list', 'retrieve']:
             return [permissions.AllowAny()]
         return [permissions.IsAuthenticated()]
-
-class NotificationViewSet(viewsets.ModelViewSet):
-    serializer_class = NotificationSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    
-    def get_queryset(self):
-        # Only return notifications for the current user
-        return Notification.objects.filter(user=self.request.user).order_by('-created_at')
-    
-    def perform_create(self, serializer):
-        # Automatically set the user to the current user when creating a notification
-        serializer.save(user=self.request.user)
-    
-    @action(detail=True, methods=['post'])
-    def mark_as_read(self, request, pk=None):
-        notification = self.get_object()
-        notification.mark_as_read()
-        return Response({'status': 'notification marked as read'})
-    
-    @action(detail=False, methods=['post'])
-    def mark_all_as_read(self, request):
-        # Mark all unread notifications as read for the current user
-        updated = Notification.objects.filter(
-            user=request.user, 
-            is_read=False
-        ).update(is_read=True)
-        
-        return Response({
-            'status': f'marked {updated} notifications as read',
-            'unread_count': Notification.objects.filter(user=request.user, is_read=False).count()
-        })
-    
-    @action(detail=False, methods=['get'])
-    def unread_count(self, request):
-        """Get the count of unread notifications for the current user"""
-        count = Notification.objects.filter(
-            user=request.user, 
-            is_read=False
-        ).count()
-        
-        return Response({
-            'unread_count': count
-        })
-    
-    @action(detail=True, methods=['post'])
-    def confirm_notification(self, request, pk=None):
-        """Vendor confirms they've seen and acknowledged the notification"""
-        notification = self.get_object()
-        
-        # Only allow confirmation if notification requires it
-        if not notification.requires_confirmation:
-            return Response(
-                {'error': 'This notification does not require confirmation'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # Check if already confirmed
-        if notification.confirmed_by_vendor:
-            return Response(
-                {'error': 'Notification already confirmed'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # Mark notification as confirmed
-        notification.confirmed_by_vendor = True
-        notification.confirmed_at = timezone.now()
-        notification.is_read = True
-        notification.save()
-        
-        # Handle specific logic based on notification type
-        if notification.notification_type == 'store_review' and notification.related_id:
-            from .models import StoreReview
-            try:
-                StoreReview.objects.filter(id=notification.related_id, vendor=request.user).update(status='approved')
-                
-                # Also notify admins about this approval
-                admin_users = User.objects.filter(user_type='administrator')
-                for admin in admin_users:
-                    Notification.objects.create(
-                        user=admin,
-                        title='Storefront Review Approved',
-                        message=f'Vendor {request.user.username} has approved a storefront review via notification confirmation.',
-                        notification_type='system',
-                        related_id=str(notification.related_id)
-                    )
-                return Response({
-                    'status': 'notification confirmed',
-                    'message': 'Review approved and administrator notified',
-                    'confirmed_at': notification.confirmed_at
-                })
-            except Exception as e:
-                print(f'Error updating review status: {e}')
-        
-        # Create notification for admin about vendor confirmation (Legacy Order logic)
-        try:
-            # Get the order related to this notification
-            order_id = notification.related_id
-            if order_id:
-                order = Order.objects.filter(id=order_id).first()
-                if order:
-                    # Get all admin users
-                    admin_users = User.objects.filter(user_type='administrator')
-                    
-                    # Create notification for each admin
-                    for admin in admin_users:
-                        Notification.objects.create(
-                            user=admin,
-                            title='Vendor Confirmed Shipping Notification',
-                            message=f'Vendor {request.user.username} has confirmed they received and will process the shipping request for Order #{order_id}.',
-                            notification_type='order',
-                            related_id=str(order_id),
-                            requires_confirmation=False,
-                        )
-                    
-                    # Mark that admin was notified
-                    notification.admin_notified_of_confirmation = True
-                    notification.save()
-            
-        except Order.DoesNotExist:
-            pass
-        except Exception as e:
-            # Log error but don't fail the confirmation
-            print(f'Error notifying admin: {e}')
-        
-        return Response({
-            'status': 'notification confirmed',
-            'message': 'Administrator has been notified of your confirmation',
-            'confirmed_at': notification.confirmed_at
-        })
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
@@ -3432,11 +3487,11 @@ class VendorEarningViewSet(viewsets.ViewSet):
                 
                 for admin in admins:
                     Notification.objects.create(
-                        user=admin,
+                        recipient=admin,
                         title='New Payout Request',
                         message=f'Vendor {vendor.username} ({vendor.email}) has requested a payout of ${amount:.2f}. Please review and approve.',
                         notification_type='system',
-                        related_id=str(payout_request.id),
+                        related_order_id=payout_request.id,
                         requires_confirmation=True,
                     )
             except Exception:
@@ -3537,11 +3592,11 @@ class PayoutRequestViewSet(viewsets.ModelViewSet):
             # Notify vendor
             try:
                 Notification.objects.create(
-                    user=payout_request.vendor,
+                    recipient=payout_request.vendor,
                     title='Payout Request Approved',
                     message=f'Your payout request of ${payout_request.amount:.2f} has been approved and will be completed shortly.',
-                    notification_type='system',
-                    related_id=str(payout_request.id),
+                    notification_type='payout_approved',
+                    related_order_id=payout_request.id,
                 )
             except Exception:
                 pass
@@ -3563,11 +3618,11 @@ class PayoutRequestViewSet(viewsets.ModelViewSet):
             # Notify vendor
             try:
                 Notification.objects.create(
-                    user=payout_request.vendor,
+                    recipient=payout_request.vendor,
                     title='Payout Request Rejected',
                     message=f'Your payout request of ${payout_request.amount:.2f} has been rejected. Reason: {payout_request.admin_notes}',
-                    notification_type='system',
-                    related_id=str(payout_request.id),
+                    notification_type='payout_rejected',
+                    related_order_id=payout_request.id,
                 )
             except Exception:
                 pass
@@ -3608,11 +3663,11 @@ class PayoutRequestViewSet(viewsets.ModelViewSet):
         # Notify vendor
         try:
             Notification.objects.create(
-                user=payout_request.vendor,
+                recipient=payout_request.vendor,
                 title='Payout Completed',
                 message=f'Your payout of ${payout_request.amount:.2f} has been completed and sent. Reference: {payout_request.payout_reference}',
-                notification_type='system',
-                related_id=str(payout_request.id),
+                notification_type='payout_approved',
+                related_order_id=payout_request.id,
             )
         except Exception:
             pass
@@ -3718,11 +3773,11 @@ class VendorPayoutViewSet(viewsets.ViewSet):
         for admin in admins:
             try:
                 Notification.objects.create(
-                    user=admin,
+                    recipient=admin,
                     title='New Payout Request',
                     message=f'{request.user.store_name or request.user.email} has requested a payout of ${payout.amount:.2f}',
                     notification_type='system',
-                    related_id=str(payout.id),
+                    related_order_id=payout.id,
                 )
             except Exception:
                 pass
@@ -3873,11 +3928,11 @@ class VendorPayoutViewSet(viewsets.ViewSet):
         # Create notification for vendor
         try:
             Notification.objects.create(
-                user=vendor,
+                recipient=vendor,
                 title='💰 Payout completed Successfully',
                 message=f'Your withdrawal of ${payout.amount:.2f} has been successfully sent to your {masked_destination["type"]}. Receipt #{receipt.receipt_number}',
-                notification_type='system',
-                related_id=str(payout.id),
+                notification_type='payout_approved',
+                related_order_id=payout.id,
             )
         except Exception:
             pass
@@ -4227,47 +4282,98 @@ class CouponViewSet(viewsets.ModelViewSet):
             try:
                 subtotal_decimal = Decimal(str(subtotal))
                 discount = coupon.calculate_discount(subtotal_decimal)
-                
-                # If subtotal provided but too low
-                if subtotal_decimal > 0 and subtotal_decimal < coupon.min_purchase_amount:
-                     return Response({
-                         'error': f'Minimum purchase of ${coupon.min_purchase_amount} required',
-                         'min_purchase_amount': coupon.min_purchase_amount
-                     }, status=status.HTTP_400_BAD_REQUEST)
-                     
-            except Exception:
-                discount = Decimal('0.00')
-                
-            return Response({
-                'valid': True,
-                'coupon': {
-                    'id': coupon.id,
-                    'code': coupon.code,
-                    'description': coupon.description,
+
+                return Response({
+                    'valid': True,
+                    'discount': float(discount),
+                    'coupon_type': coupon.coupon_type,
                     'discount_type': coupon.discount_type,
-                    'discount_value': coupon.discount_value,
-                    'discount_display': coupon.get_discount_display(),
-                    'calculated_discount': discount
-                }
-            })
-            
+                    'discount_value': float(coupon.discount_value),
+                    'message': f'Coupon applied successfully! You save ${discount}'
+                })
+            except Exception as e:
+                return Response({'error': f'Error calculating discount: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
+
         except Coupon.DoesNotExist:
             return Response({'error': 'Invalid coupon code'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': f'Error validating coupon: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class NotificationViewSet(viewsets.ModelViewSet):
+    serializer_class = NotificationSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Notification.objects.none()
+        user = self.request.user
+        # Order by: unread first, then order-related notifications, then by created_at (newest first)
+        return Notification.objects.filter(recipient=user).order_by('is_read', '-created_at')
+
+    @action(detail=True, methods=['post'])
+    def mark_as_read(self, request, pk=None):
+        notification = self.get_object()
+        if notification.recipient != request.user:
+            return Response(
+                {'error': 'You can only mark your own notifications as read'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        notification.is_read = True
+        notification.read_at = timezone.now()
+        notification.save()
+        serializer = self.get_serializer(notification)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'])
+    def mark_as_responded(self, request, pk=None):
+        notification = self.get_object()
+        if notification.recipient != request.user:
+            return Response(
+                {'error': 'You can only mark your own notifications as responded'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        notification.is_responded = True
+        notification.responded_at = timezone.now()
+        notification.save()
+        serializer = self.get_serializer(notification)
+        return Response(serializer.data)
 
     @action(detail=False, methods=['get'])
-    def vendor_coupons(self, request):
-        """
-        Get all coupons created by the current vendor
-        """
-        if request.user.user_type != 'vendor':
-             return Response({'error': 'Only vendors can access this endpoint'}, 
-                           status=status.HTTP_403_FORBIDDEN)
-                           
-        coupons = Coupon.objects.filter(vendor=request.user)
-        page = self.paginate_queryset(coupons)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-            
-        serializer = self.get_serializer(coupons, many=True)
+    def unread(self, request):
+        unread_notifications = self.get_queryset().filter(is_read=False)
+        serializer = self.get_serializer(unread_notifications, many=True)
         return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def pending_response(self, request):
+        pending_notifications = self.get_queryset().filter(is_read=True, is_responded=False)
+        serializer = self.get_serializer(pending_notifications, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='unread_count')
+    def unread_count(self, request):
+        """Get the count of unread notifications for the current user"""
+        try:
+            count = self.get_queryset().filter(is_read=False).count()
+            return Response({'unread_count': count})
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=False, methods=['post'])
+    def mark_all_as_read(self, request):
+        """Mark all notifications as read for the current user"""
+        try:
+            self.get_queryset().filter(is_read=False).update(
+                is_read=True,
+                read_at=timezone.now()
+            )
+            return Response({'message': 'All notifications marked as read'})
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

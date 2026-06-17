@@ -655,21 +655,22 @@ class WishlistSerializer(serializers.ModelSerializer):
 
 class NotificationSerializer(serializers.ModelSerializer):
     time_ago = serializers.SerializerMethodField()
-    
+    recipient_name = serializers.CharField(source='recipient.username', read_only=True)
+
     class Meta:
         model = Notification
         fields = [
-            'id', 'title', 'message', 'notification_type',
-            'is_read', 'related_id', 'created_at', 'time_ago',
-            'requires_confirmation', 'confirmed_by_vendor', 'confirmed_at',
-            'admin_notified_of_confirmation'
+            'id', 'recipient', 'recipient_name', 'notification_type', 'title', 'message',
+            'related_order_id', 'related_product_id', 'is_read', 'is_responded',
+            'created_at', 'read_at', 'responded_at', 'time_ago',
+            'requires_confirmation', 'confirmed_by_vendor', 'confirmed_at', 'admin_notified_of_confirmation'
         ]
-        read_only_fields = ('created_at', 'updated_at', 'confirmed_at')
-    
+        read_only_fields = ('created_at', 'read_at', 'responded_at', 'confirmed_at')
+
     def get_time_ago(self, obj):
         from django.utils import timezone
         from django.utils.timesince import timesince
-        
+
         now = timezone.now()
         if obj.created_at > now - timezone.timedelta(days=1):
             return timesince(obj.created_at, now) + ' ago'

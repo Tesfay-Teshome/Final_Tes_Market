@@ -1,6 +1,8 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
+import { useQuery } from '@tanstack/react-query';
 import { RootState } from '@/store';
+import { notificationsAPI, resolveMediaUrl } from '@/services/api';
 import {
   LayoutDashboard,
   Package,
@@ -20,7 +22,8 @@ import {
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { resolveMediaUrl } from '@/services/api';
+
+
 
 interface VendorSidebarProps {
   className?: string;
@@ -32,6 +35,18 @@ const VendorSidebar = ({ className, onClose, showCloseButton = false }: VendorSi
   const location = useLocation();
   const user = useSelector((state: RootState) => state.auth.user);
   const profileImage = resolveMediaUrl(user?.profile_image);
+
+  // Live unread notification count (polls every 30s)
+  const { data: unreadData } = useQuery<{ unread_count: number }>({
+    queryKey: ['sidebar-unread-count'],
+    queryFn: async () => {
+      const res = await notificationsAPI.getUnreadCount();
+      return res.data;
+    },
+    refetchInterval: 30_000,
+    retry: false,
+  });
+  const unreadCount = unreadData?.unread_count ?? 0;
 
   const quickActions = [
     {
@@ -203,20 +218,31 @@ const VendorSidebar = ({ className, onClose, showCloseButton = false }: VendorSi
           {/* Navigation Links */}
           <div className="p-2 space-y-1">
             {links.map((link) => {
-              const isActive = location.pathname === link.to;
+              const active = location.pathname === link.to ||
+                (link.to !== '/' && link.to !== '/vendor' && location.pathname.startsWith(link.to));
+              const isNotifications = link.to === '/vendor/notifications';
               return (
                 <Link
                   key={link.to}
                   to={link.to}
-                  className={`group flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-300 ${isActive
+                  className={`group flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-300 ${
+                    active
                       ? 'bg-gradient-to-r from-emerald-600 to-green-600 text-white shadow-lg'
                       : 'text-emerald-100/80 hover:bg-emerald-400/10 hover:text-white'
-                    }`}
+                  }`}
                 >
-                  <link.icon className={`mr-3 h-5 w-5 flex-shrink-0 transition-transform group-hover:scale-110 ${isActive ? 'text-white' : 'text-emerald-200/70'
-                    }`} />
+                  <link.icon className={`mr-3 h-5 w-5 flex-shrink-0 transition-transform group-hover:scale-110 ${
+                    active ? 'text-white' : 'text-emerald-200/70'
+                  }`} />
                   <span>{link.label}</span>
-                  {isActive && (
+                  {/* Notification badge */}
+                  {isNotifications && unreadCount > 0 && (
+                    <span className="ml-auto bg-red-500 text-white text-[10px] font-black rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 animate-pulse">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
+                  {/* Active dot (only when no badge shown) */}
+                  {active && !(isNotifications && unreadCount > 0) && (
                     <div className="ml-auto w-2 h-2 bg-white rounded-full animate-pulse"></div>
                   )}
                 </Link>
@@ -231,9 +257,15 @@ const VendorSidebar = ({ className, onClose, showCloseButton = false }: VendorSi
                 to="/vendor/notifications"
                 className="flex items-center p-2 rounded-lg hover:bg-emerald-400/10 transition-colors"
               >
-                <Bell className="w-4 h-4 text-emerald-200/80 mr-2" />
+                <Bell className={`w-4 h-4 mr-2 ${unreadCount > 0 ? 'text-red-400 animate-pulse' : 'text-emerald-200/80'}`} />
                 <span className="text-xs text-emerald-100/80">Notifications</span>
-                <div className="ml-2 w-2 h-2 bg-red-500 rounded-full"></div>
+                {unreadCount > 0 ? (
+                  <span className="ml-2 bg-red-500 text-white text-[10px] font-black rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                ) : (
+                  <div className="ml-2 w-2 h-2 bg-emerald-400/50 rounded-full"></div>
+                )}
               </Link>
               <Link
                 to="/messages"

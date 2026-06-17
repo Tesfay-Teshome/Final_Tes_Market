@@ -233,9 +233,20 @@ export const adminAPI = {
   updateOrderStatus: (id: string | number, status: string, notes?: string) =>
     api.patch(`/api/orders/${id}/`, { status, notes }),
   approveOrder: (id: string | number, notes?: string) =>
-    api.patch(`/api/orders/${id}/`, { status: 'approved', notes }),
+    api.post(`/api/orders/${id}/approve/`, { notes }),
   rejectOrder: (id: string | number, notes?: string) =>
-    api.patch(`/api/orders/${id}/`, { status: 'rejected', notes }),
+    api.post(`/api/orders/${id}/reject/`, { notes }),
+  shipOrder: (id: string | number, trackingNumber?: string) =>
+    api.post(`/api/orders/${id}/ship/`, { tracking_number: trackingNumber }),
+  completeOrder: (id: string | number) =>
+    api.post(`/api/orders/${id}/complete/`),
+
+  // Notifications
+  getNotifications: () => api.get('/api/notifications/'),
+  getUnreadNotifications: () => api.get('/api/notifications/unread/'),
+  getPendingResponseNotifications: () => api.get('/api/notifications/pending_response/'),
+  markNotificationAsRead: (id: string | number) => api.post(`/api/notifications/${id}/mark_as_read/`),
+  markNotificationAsResponded: (id: string | number) => api.post(`/api/notifications/${id}/mark_as_responded/`),
 
   // Dashboard & Metrics
   getDashboard: () => api.get('/api/administrator/dashboard/'),
@@ -1066,6 +1077,21 @@ export const notificationsAPI = {
    */
   getUnreadCount() {
     return api.get('/api/notifications/unread_count/');
+  },
+
+  /**
+   * Get unread notifications for the current user
+   */
+  getUnread() {
+    return api.get('/api/notifications/unread/');
+  },
+
+  /**
+   * Mark a specific notification as responded
+   * @param id Notification ID
+   */
+  markAsResponded(id: string) {
+    return api.post(`/api/notifications/${id}/mark_as_responded/`);
   },
 
   /**

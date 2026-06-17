@@ -266,6 +266,51 @@ class Order(models.Model):
         """Check if vendor can process this order"""
         return self.admin_approved and self.vendor_can_process and self.status in ['approved', 'processing']
 
+class Notification(models.Model):
+    TYPE_CHOICES = (
+        ('order_approved', 'Order Approved'),
+        ('order_rejected', 'Order Rejected'),
+        ('order_shipped', 'Order Shipped'),
+        ('order_delivered', 'Order Delivered'),
+        ('payout_approved', 'Payout Approved'),
+        ('payout_rejected', 'Payout Rejected'),
+        ('product_approved', 'Product Approved'),
+        ('product_rejected', 'Product Rejected'),
+        ('vendor_approved', 'Vendor Approved'),
+        ('vendor_rejected', 'Vendor Rejected'),
+        ('order', 'Order Update'),
+        ('store_review', 'Store Review'),
+    )
+
+    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    notification_type = models.CharField(max_length=50, choices=TYPE_CHOICES)
+    title = models.CharField(max_length=255)
+    message = models.TextField()
+    related_order_id = models.IntegerField(null=True, blank=True)
+    related_product_id = models.IntegerField(null=True, blank=True)
+    is_read = models.BooleanField(default=False)
+    is_responded = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    read_at = models.DateTimeField(null=True, blank=True)
+    responded_at = models.DateTimeField(null=True, blank=True)
+    
+    # Vendor confirmation tracking (for store reviews, etc.)
+    requires_confirmation = models.BooleanField(default=False)
+    confirmed_by_vendor = models.BooleanField(default=False)
+    confirmed_at = models.DateTimeField(null=True, blank=True)
+    admin_notified_of_confirmation = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['recipient', 'is_read']),
+            models.Index(fields=['recipient', 'is_responded']),
+            models.Index(fields=['-created_at']),
+        ]
+
+    def __str__(self):
+        return f"{self.title} - {self.recipient.username}"
+
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
     product = models.ForeignKey(Product, on_delete=models.PROTECT)
@@ -436,41 +481,6 @@ class AdministratorDashboardMetrics(models.Model):
         verbose_name = 'Administrator Dashboard Metric'
         verbose_name_plural = 'Administrator Dashboard Metrics'
 
-class Notification(models.Model):
-    NOTIFICATION_TYPES = [
-        ('order', 'Order Update'),
-        ('product', 'Product Update'),
-        ('system', 'System Notification'),
-        ('promotion', 'Promotion'),
-        ('account', 'Account Update'),
-        ('store_review', 'Store Review'),
-    ]
-    
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
-    title = models.CharField(max_length=200)
-    message = models.TextField()
-    notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES)
-    is_read = models.BooleanField(default=False)
-    related_id = models.CharField(max_length=50, blank=True, null=True)  # For linking to orders, products, etc.
-    
-    # Vendor confirmation tracking
-    requires_confirmation = models.BooleanField(default=False)  # If this notification needs vendor confirmation
-    confirmed_by_vendor = models.BooleanField(default=False)
-    confirmed_at = models.DateTimeField(null=True, blank=True)
-    admin_notified_of_confirmation = models.BooleanField(default=False)  # Track if admin was notified
-    
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        ordering = ['-created_at']
-
-    def __str__(self):
-        return f"{self.title} - {self.user.email}"
-
-    def mark_as_read(self):
-        self.is_read = True
-        self.save()
 
 class Testimonial(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)

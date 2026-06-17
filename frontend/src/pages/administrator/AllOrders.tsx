@@ -95,13 +95,29 @@ const AllOrders = () => {
         return matchesSearch && matchesStatus;
     });
 
+    // Sort orders to put pending/new orders first
+    const sortedOrders = useMemo(() => {
+        return [...filteredOrders].sort((a: Order, b: Order) => {
+            // Priority: not admin_approved first, then by status priority, then by date (newest first)
+            const aPriority = !a.admin_approved || a.status === 'pending' || a.status === 'awaiting_approval' || a.status === 'payment_confirmed' ? 1 : 0;
+            const bPriority = !b.admin_approved || b.status === 'pending' || b.status === 'awaiting_approval' || b.status === 'payment_confirmed' ? 1 : 0;
+
+            if (aPriority !== bPriority) {
+                return bPriority - aPriority; // Higher priority first
+            }
+
+            // If same priority, sort by date (newest first)
+            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        });
+    }, [filteredOrders]);
+
     const invalidateOrders = () => {
         queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
         queryClient.invalidateQueries({ queryKey: ['adminStats'] });
     };
 
     const approveOrderMutation = useMutation({
-        mutationFn: (orderId: string) => adminAPI.approveOrder(orderId, { notes: 'Approved by admin' } as any),
+        mutationFn: (orderId: string) => adminAPI.approveOrder(orderId, 'Approved by admin'),
         onSuccess: () => {
             toast({ title: 'Success', description: 'Order approved efficiently' });
             invalidateOrders();
@@ -110,7 +126,7 @@ const AllOrders = () => {
     });
 
     const rejectOrderMutation = useMutation({
-        mutationFn: (orderId: string) => adminAPI.rejectOrder(orderId, { notes: approvalNotes } as any),
+        mutationFn: (orderId: string) => adminAPI.rejectOrder(orderId, approvalNotes),
         onSuccess: () => {
             toast({ title: 'Success', description: 'Order rejected' });
             setActionType(null);
@@ -130,8 +146,17 @@ const AllOrders = () => {
         onError: () => toast({ title: 'Error', description: 'Failed to process order', variant: 'destructive' })
     });
 
+    const shipOrderMutation = useMutation({
+        mutationFn: ({ orderId, trackingNumber }: { orderId: string; trackingNumber: string }) => adminAPI.shipOrder(orderId, trackingNumber),
+        onSuccess: () => {
+            toast({ title: 'Success', description: 'Order marked as shipped' });
+            invalidateOrders();
+        },
+        onError: () => toast({ title: 'Error', description: 'Failed to ship order', variant: 'destructive' })
+    });
+
     const completeOrderMutation = useMutation({
-        mutationFn: (orderId: string) => adminAPI.updateOrderStatus(orderId, 'delivered'),
+        mutationFn: (orderId: string) => adminAPI.completeOrder(orderId),
         onSuccess: () => {
             toast({ title: 'Success', description: 'Order marked delivered' });
             invalidateOrders();
@@ -142,10 +167,10 @@ const AllOrders = () => {
     const finalizeOrderMutation = useMutation({
         mutationFn: (orderId: string) => adminAPI.updateOrderStatus(orderId, 'completed'),
         onSuccess: () => {
-            toast({ title: 'Success', description: 'Order marked completed' });
+            toast({ title: 'Success', description: 'Order completed successfully' });
             invalidateOrders();
         },
-        onError: () => toast({ title: 'Error', description: 'Failed to mark order as completed', variant: 'destructive' })
+        onError: () => toast({ title: 'Error', description: 'Failed to finalize order', variant: 'destructive' })
     });
 
     const stats = useMemo(() => {
@@ -335,7 +360,7 @@ const AllOrders = () => {
                         <div className="bg-gradient-to-r from-emerald-500 to-green-600 px-6 py-4">
                             <div className="flex items-center space-x-3">
                                 <ShoppingCart className="h-6 w-6 text-white" />
-                                <h3 className="text-lg font-semibold text-white">Orders List ({filteredOrders?.length || 0})</h3>
+                                <h3 className="text-lg font-semibold text-white">Orders List ({sortedOrders?.length || 0})</h3>
                             </div>
                         </div>
 
@@ -352,7 +377,7 @@ const AllOrders = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="bg-gray-800/50 divide-y divide-gray-700/30">
-                                    {filteredOrders.length === 0 ? (
+                                    {sortedOrders.length === 0 ? (
                                         <tr>
                                             <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
                                                 <Package className="h-10 w-10 mx-auto mb-3 opacity-20" />
@@ -360,7 +385,7 @@ const AllOrders = () => {
                                             </td>
                                         </tr>
                                     ) : (
-                                        filteredOrders.map((order: Order, index: number) => (
+                                        sortedOrders.map((order: Order, index: number) => (
                                             <motion.tr
                                                 key={order.id}
                                                 className="hover:bg-gray-700/30 transition-colors cursor-pointer"
@@ -589,16 +614,6 @@ const AllOrders = () => {
                                                     >
                                                         {approveOrderMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle className="w-4 h-4 mr-2" />}
                                                         Approve Order
-                                                    </button>
-                                                )}
-                                                {selectedOrder.admin_approved && (selectedOrder.status === 'approved' || selectedOrder.status === 'pending') && (
-                                                    <button
-                                                        onClick={() => processOrderMutation.mutate(selectedOrder.id)}
-                                                        disabled={processOrderMutation.isPending}
-                                                        className="inline-flex items-center px-6 py-2.5 rounded-xl font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition-all duration-300 shadow-lg border border-emerald-500"
-                                                    >
-                                                        {processOrderMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <PlayCircle className="w-4 h-4 mr-2" />}
-                                                        Process Order
                                                     </button>
                                                 )}
                                                 {selectedOrder.status === 'shipped' && (

@@ -25,6 +25,7 @@ import { VendorAnalytics } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 
+
 // ─── Design Tokens (matching Admin Dashboard exactly) ───────────────────────
 const emeraldCardBase =
   'relative overflow-hidden rounded-2xl border border-white/10 bg-[#0F1720] p-4 cursor-pointer relative overflow-hidden group hover:bg-[#0F1720]/90 transition-all duration-300 shadow-xl';
@@ -624,6 +625,7 @@ const Dashboard = () => {
           </motion.div>
         </div>
       </div>
+
     </div>
   );
 };
