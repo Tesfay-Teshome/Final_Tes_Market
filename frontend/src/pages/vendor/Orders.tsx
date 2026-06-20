@@ -74,7 +74,7 @@ const VendorOrders = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
-  const [trackingNumber, setTrackingNumber] = useState('');
+  const [trackingNumbers, setTrackingNumbers] = useState<Record<string, string>>({});
 
   const { data: ordersData, isLoading, isError, refetch } = useQuery({
     queryKey: ['vendor-orders', statusFilter, searchTerm, dateRange],
@@ -112,12 +112,12 @@ const VendorOrders = () => {
   const markShippedMutation = useMutation({
     mutationFn: ({ orderId, trackingNumber }: { orderId: string; trackingNumber: string }) =>
       vendorAPI.markShipped(orderId, trackingNumber),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       toast({
         title: 'Success',
         description: 'Order marked as shipped.',
       });
-      setTrackingNumber('');
+      setTrackingNumbers(prev => ({ ...prev, [variables.orderId]: '' }));
       queryClient.invalidateQueries({ queryKey: ['vendor-orders'] });
     },
     onError: (error: any) => {
@@ -235,23 +235,34 @@ const VendorOrders = () => {
 
     if (order.status === 'processing') {
       buttons.push(
-        <div key="ship-form" className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
-          <div className="relative w-full sm:w-48">
+        <div key="ship-form" className="flex flex-col items-start gap-3 w-full">
+          <div className="relative w-full">
             <Package className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#586069]" />
             <input
               type="text"
               placeholder="TRACKING NUMBER"
-              value={trackingNumber}
-              onChange={(e) => setTrackingNumber(e.target.value)}
+              value={trackingNumbers[order.id] || ''}
+              onChange={(e) => setTrackingNumbers(prev => ({ ...prev, [order.id]: e.target.value }))}
               className="w-full pl-9 pr-4 py-2.5 bg-white/[0.03] border border-white/10 rounded-xl text-[11px] font-bold text-white placeholder-[#586069] focus:outline-none focus:border-emerald-500/50 transition-all uppercase tracking-tight"
             />
           </div>
           <motion.button
             whileHover={{ scale: 1.02, translateY: -2 }}
             whileTap={{ scale: 0.98 }}
-            onClick={() => markShippedMutation.mutate({ orderId: order.id, trackingNumber })}
-            disabled={markShippedMutation.isPending || !trackingNumber}
-            className="w-full sm:w-auto flex items-center justify-center px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-800 text-white text-[11px] font-black uppercase tracking-widest rounded-xl shadow-xl shadow-emerald-900/40 border border-emerald-400/20 disabled:opacity-50 disabled:grayscale transition-all font-sans"
+            onClick={() => {
+              const trackingNum = trackingNumbers[order.id] || '';
+              if (!trackingNum) {
+                toast({
+                  title: 'Error',
+                  description: 'Please enter a tracking number',
+                  variant: 'destructive',
+                });
+                return;
+              }
+              markShippedMutation.mutate({ orderId: order.id, trackingNumber: trackingNum });
+            }}
+            disabled={markShippedMutation.isPending}
+            className="w-full flex items-center justify-center px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-800 text-white text-[11px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-emerald-900/20 border border-emerald-400/20 disabled:opacity-50 cursor-pointer transition-all font-sans"
           >
             <Truck className="h-3.5 w-3.5 mr-2" />
             Ship Order

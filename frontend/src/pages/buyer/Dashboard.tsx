@@ -19,12 +19,13 @@ import {
     ArrowRight,
     Sparkles,
     ShoppingBag,
-    LayoutDashboard
+    LayoutDashboard,
+    Star
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { RootState } from '@/store';
 import { useQuery } from '@tanstack/react-query';
-import { adminAPI, cartAPI, ordersAPI } from '@/services/api';
+import { buyerAPI, cartAPI, ordersAPI, adminAPI, resolveMediaUrl } from '@/services/api';
 import { motion } from 'framer-motion';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -35,10 +36,38 @@ const Dashboard = () => {
     const { toast } = useToast();
     const navigate = useNavigate();
 
+    const handleConfirmReceipt = async (orderId: number) => {
+        try {
+            toast({
+                title: 'Confirming Receipt',
+                description: 'Please wait while we confirm your order receipt...',
+            });
+            // Call API to confirm receipt - update order status to delivered
+            await adminAPI.updateOrderStatus(orderId, 'delivered');
+            toast({
+                title: 'Success',
+                description: 'Order receipt confirmed successfully!',
+            });
+            refetchOrders();
+        } catch (error) {
+            toast({
+                title: 'Error',
+                description: 'Failed to confirm receipt. Please try again.',
+                variant: 'destructive',
+            });
+        }
+    };
+
+    const handleRateVendor = (order: any) => {
+        // Navigate to rating page or open rating modal
+        // For now, navigate to order details where rating can be done
+        navigate(`/orders/${order.id}?rate=true`);
+    };
+
     // Fetch user orders
     const { data: ordersData, refetch: refetchOrders } = useQuery({
         queryKey: ['buyer-orders'],
-        queryFn: () => adminAPI.getBuyerOrders(),
+        queryFn: () => buyerAPI.getOrders(),
         enabled: isAuthenticated,
     });
 
@@ -49,47 +78,25 @@ const Dashboard = () => {
         enabled: isAuthenticated,
     });
 
-    const orders = ordersData?.data || [];
+    const orders = Array.isArray(ordersData?.data) ? ordersData.data : ((ordersData as any)?.data?.results || (ordersData as any)?.data?.data || (ordersData as any)?.results || (ordersData as any)?.data || []);
 
     // Debug: Log orders to see their structure
     console.log('📊 Dashboard Orders:', orders);
 
     const totalOrders = orders.length;
     const pendingOrders = orders.filter((order: any) => {
-        console.log(`Order ${order.id}: status="${order.status}", admin_approved=${order.admin_approved}`);
-        return !order.admin_approved || order.status === 'pending' || order.status === 'awaiting_approval';
+        return !order.admin_approved || order.status === 'pending' || order.status === 'awaiting_approval' || order.status === 'payment_confirmed';
     }).length;
-    const approvedOrders = orders.filter((order: any) => order.status === 'approved' && order.admin_approved).length;
-    const processingOrders = orders.filter((order: any) => order.status === 'processing').length;
+    const approvedOrders = orders.filter((order: any) => (order.status === 'approved' || order.status === 'processing' || order.status === 'shipped') && order.admin_approved).length;
+    const processingOrders = orders.filter((order: any) => order.status === 'processing' || order.status === 'shipped').length;
     const completedOrders = orders.filter((order: any) => order.status === 'completed' || order.status === 'delivered').length;
     const rejectedOrders = orders.filter((order: any) => order.status === 'rejected' || order.status === 'cancelled').length;
     const totalSpent = orders.reduce((sum: number, order: any) => sum + (Number(order.total_amount) || 0), 0);
 
     // Filter orders based on selected filter
     const getFilteredOrders = () => {
-        let filtered;
-        switch (selectedFilter) {
-            case 'pending':
-                filtered = orders.filter((order: any) => !order.admin_approved || order.status === 'pending' || order.status === 'awaiting_approval');
-                break;
-            case 'approved':
-                filtered = orders.filter((order: any) => order.status === 'approved' && order.admin_approved);
-                break;
-            case 'processing':
-                filtered = orders.filter((order: any) => order.status === 'processing');
-                break;
-            case 'completed':
-                filtered = orders.filter((order: any) => order.status === 'completed' || order.status === 'delivered');
-                break;
-            case 'rejected':
-                filtered = orders.filter((order: any) => order.status === 'rejected' || order.status === 'cancelled');
-                break;
-            default:
-                filtered = orders;
-        }
-
-        console.log(`🔍 Filter "${selectedFilter}" returned ${filtered.length} orders:`, filtered.map((o: any) => `${o.id}:${o.status}`));
-        return filtered;
+        // Always show all orders regardless of filter
+        return orders;
     };
 
     const stats = [
@@ -303,15 +310,20 @@ const Dashboard = () => {
                 </div>
 
                 {/* Stats Grid */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-10">
                     {stats.map((stat, index) => (
                         <motion.div
                             key={stat.title}
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.1 }}
-                            className={`relative overflow-hidden rounded-3xl border border-white/[0.05] bg-[#0F1720]/60 backdrop-blur-xl p-5 shadow-2xl group cursor-pointer transition-all duration-500 ${selectedFilter === (stat as any).filter ? 'border-emerald-500/50 ring-1 ring-emerald-500/20' : 'hover:border-emerald-500/30'
-                                }`}
+                            transition={{ duration: 0.5, delay: index * 0.1 }}
+                            whileHover={{ y: -4 }}
+                            className="group relative rounded-xl p-4 overflow-hidden cursor-pointer transition-all duration-500"
+                            style={{
+                                background: 'linear-gradient(145deg, rgba(4, 19, 14, 0.95), rgba(5, 30, 22, 0.98))',
+                                border: '1px solid rgba(0, 255, 178, 0.08)',
+                                boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.02)',
+                            }}
                             onClick={() => {
                                 if ((stat as any).filter) {
                                     setSelectedFilter((stat as any).filter);
@@ -320,21 +332,25 @@ const Dashboard = () => {
                                 }
                             }}
                         >
-                            <div className="flex justify-between items-start mb-4">
-                                <div className="p-2.5 rounded-xl bg-gradient-to-br from-[#122A20] to-[#0A140F] border border-[#3CFF9E]/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] group-hover:bg-[#00FF9D]/10 transition-colors">
-                                    <stat.icon className="h-4 w-4 text-[#3CFF9E]" />
+                            <div className="flex items-start justify-between mb-2">
+                                <div className="flex-1">
+                                    <span className="text-[9px] font-bold tracking-[0.2em] uppercase" style={{ color: '#E6CE91' }}>
+                                        {stat.title}
+                                    </span>
+                                    <div className="mt-1.5 text-xl font-bold tracking-tight font-serif" style={{ color: '#F4F6F8' }}>
+                                        {stat.value}
+                                    </div>
                                 </div>
-                                <div className="flex flex-col items-end">
-                                    <span className="text-[10px] font-black text-[#586069] uppercase tracking-[0.2em]">{stat.title}</span>
+                                <div
+                                    className="h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                                    style={{
+                                        background: 'linear-gradient(135deg, #064E3B, #042A20)',
+                                        boxShadow: '0 8px 24px -8px #064E3B',
+                                    }}
+                                >
+                                    <stat.icon className="h-4 w-4" style={{ color: '#E6CE91' }} />
                                 </div>
                             </div>
-                            <div className="space-y-0.5">
-                                <h3 className="text-2xl font-black text-white tracking-tighter">{stat.value}</h3>
-                                {selectedFilter === (stat as any).filter && (
-                                    <div className="h-1 w-8 bg-emerald-500 rounded-full mt-2" />
-                                )}
-                            </div>
-                            <div className="absolute -bottom-6 -right-6 w-12 h-12 bg-[#00FF9D]/5 rounded-full blur-xl transition-all group-hover:scale-150" />
                         </motion.div>
                     ))}
                 </div>
@@ -376,20 +392,32 @@ const Dashboard = () => {
                                         initial={{ opacity: 0, x: -10 }}
                                         animate={{ opacity: 1, x: 0 }}
                                         transition={{ delay: 0.6 + (idx * 0.05) }}
-                                        className="group bg-white/[0.02] hover:bg-white/[0.05] rounded-2xl border border-white/[0.03] p-4 flex items-center justify-between transition-all duration-300"
+                                        className="group bg-white/[0.02] hover:bg-white/[0.05] rounded-2xl border border-white/[0.03] p-3 sm:p-4 flex items-center justify-between transition-all duration-300"
                                     >
-                                        <div className="flex items-center gap-4">
-                                            <div className="h-10 w-10 rounded-xl bg-gray-900 border border-white/[0.1] flex items-center justify-center">
-                                                {getStatusIcon(order.status)}
-                                            </div>
-                                            <div>
-                                                <div className="flex items-center gap-2">
-                                                    <p className="text-sm font-black text-white group-hover:text-emerald-400 transition-colors">Order #{order.id}</p>
-                                                    <span className="text-[10px] font-bold text-[#586069]">• {new Date(order.created_at).toLocaleDateString()}</span>
+                                        <div className="flex items-center gap-3 sm:gap-4">
+                                            {/* Product Image */}
+                                            {order.items && order.items.length > 0 && (
+                                                <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl overflow-hidden border border-white/[0.1] flex-shrink-0 bg-gray-900">
+                                                    <img
+                                                        src={resolveMediaUrl(order.items[0].product?.image) || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=64&h=64&fit=crop'}
+                                                        alt={order.items[0].product?.name || 'Product'}
+                                                        className="h-full w-full object-cover"
+                                                    />
                                                 </div>
-                                                <p className="text-[10px] font-bold text-[#8B949E] uppercase tracking-tight mt-0.5">
-                                                    {getStatusText(order.status, order.admin_approved)}
-                                                </p>
+                                            )}
+                                            <div className="flex items-center gap-3 sm:gap-4">
+                                                <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl bg-gray-900 border border-white/[0.1] flex items-center justify-center flex-shrink-0">
+                                                    {getStatusIcon(order.status)}
+                                                </div>
+                                                <div>
+                                                    <div className="flex items-center gap-2">
+                                                        <p className="text-xs sm:text-sm font-black text-white group-hover:text-emerald-400 transition-colors">Order #{order.id}</p>
+                                                        <span className="text-[9px] sm:text-[10px] font-bold text-[#586069]">• {new Date(order.created_at).toLocaleDateString()}</span>
+                                                    </div>
+                                                    <p className="text-[9px] sm:text-[10px] font-bold text-[#8B949E] uppercase tracking-tight mt-0.5">
+                                                        {getStatusText(order.status, order.admin_approved)}
+                                                    </p>
+                                                </div>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-6">
@@ -408,13 +436,26 @@ const Dashboard = () => {
                                                         <Eye className="h-3.5 w-3.5 text-[#8B949E] group-hover:text-emerald-400" />
                                                     </motion.button>
                                                 </Link>
+                                                {order.status === 'shipped' && (
+                                                    <motion.button
+                                                        whileHover={{ scale: 1.1 }}
+                                                        whileTap={{ scale: 0.95 }}
+                                                        onClick={() => handleConfirmReceipt(order.id)}
+                                                        className="p-2 rounded-lg bg-green-500/10 border border-green-500/30 hover:bg-green-500/20 hover:border-green-500/50 transition-all text-green-400"
+                                                        title="Confirm Receipt"
+                                                    >
+                                                        <CheckCircle className="h-4 w-4" />
+                                                    </motion.button>
+                                                )}
                                                 {(order.status === 'completed' || order.status === 'delivered') && (
                                                     <motion.button
                                                         whileHover={{ scale: 1.1 }}
-                                                        onClick={() => {/* delete logic */ }}
-                                                        className="p-2 rounded-lg bg-white/[0.03] border border-white/[0.08] hover:bg-red-500/20 hover:border-red-500/30 transition-all text-red-500/60"
+                                                        whileTap={{ scale: 0.95 }}
+                                                        onClick={() => handleRateVendor(order)}
+                                                        className="p-2 rounded-lg bg-yellow-500/10 border border-yellow-500/30 hover:bg-yellow-500/20 hover:border-yellow-500/50 transition-all text-yellow-400"
+                                                        title="Rate Vendor"
                                                     >
-                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                        <Star className="h-4 w-4" />
                                                     </motion.button>
                                                 )}
                                             </div>

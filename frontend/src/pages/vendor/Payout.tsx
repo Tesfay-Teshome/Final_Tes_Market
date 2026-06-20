@@ -142,8 +142,8 @@ const Payout = () => {
 
   const handleRequestWithdrawal = () => {
     const amount = parseFloat(withdrawAmount);
-    if (isNaN(amount) || amount < 10) {
-      toast({ title: 'Error', description: 'Minimum withdrawal is $10.', variant: 'destructive' });
+    if (isNaN(amount) || amount < 100) {
+      toast({ title: 'Error', description: 'Minimum withdrawal is $100.', variant: 'destructive' });
       return;
     }
 

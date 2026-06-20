@@ -40,7 +40,7 @@ import {
 
 import { RootState } from '@/store';
 
-import { adminAPI } from '@/services/api';
+import { buyerAPI, resolveMediaUrl } from '@/services/api';
 
 import { Button } from '@/components/ui/button';
 
@@ -82,7 +82,7 @@ const Orders = () => {
 
     queryKey: ['buyer-orders', statusFilter, searchTerm],
 
-    queryFn: () => adminAPI.getBuyerOrders(),
+    queryFn: () => buyerAPI.getOrders(),
 
     enabled: isAuthenticated,
 
@@ -432,7 +432,7 @@ const Orders = () => {
 
 
 
-  const orders = ordersData?.data || [];
+  const orders = Array.isArray(ordersData?.data) ? ordersData.data : ((ordersData as any)?.data?.results || (ordersData as any)?.data?.data || (ordersData as any)?.results || (ordersData as any)?.data || []);
 
 
 
@@ -690,7 +690,7 @@ const Orders = () => {
 
         <motion.div
 
-          className="grid grid-cols-2 md:grid-cols-4 gap-5 mb-10"
+          className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-10"
 
           initial={{ opacity: 0, y: 20 }}
 
@@ -700,95 +700,125 @@ const Orders = () => {
 
         >
 
-          <div className="rounded-3xl border border-white/[0.05] bg-[#0F1720]/60 backdrop-blur-xl p-5 shadow-2xl group hover:border-emerald-500/30 transition-all duration-500">
-
-            <div className="flex justify-between items-start mb-4">
-
-              <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-
-                <Package className="h-4 w-4 text-emerald-400" />
-
+          <motion.div
+            whileHover={{ y: -4 }}
+            className="group relative rounded-xl p-4 overflow-hidden cursor-pointer transition-all duration-500"
+            style={{
+              background: 'linear-gradient(145deg, rgba(4, 19, 14, 0.95), rgba(5, 30, 22, 0.98))',
+              border: '1px solid rgba(0, 255, 178, 0.08)',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.02)',
+            }}
+          >
+            <div className="flex items-start justify-between mb-2">
+              <div className="flex-1">
+                <span className="text-[9px] font-bold tracking-[0.2em] uppercase" style={{ color: '#E6CE91' }}>
+                  Total Orders
+                </span>
+                <div className="mt-1.5 text-xl font-bold tracking-tight font-serif" style={{ color: '#F4F6F8' }}>
+                  {orders.length}
+                </div>
               </div>
-
-              <span className="text-[10px] font-black text-[#586069] uppercase tracking-[0.2em]">Total Orders</span>
-
-            </div>
-
-            <h3 className="text-2xl font-black text-white tracking-tighter">{orders.length}</h3>
-
-          </div>
-
-
-
-          <div className="rounded-3xl border border-white/[0.05] bg-[#0F1720]/60 backdrop-blur-xl p-5 shadow-2xl group hover:border-yellow-500/30 transition-all duration-500">
-
-            <div className="flex justify-between items-start mb-4">
-
-              <div className="p-2.5 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
-
-                <Clock className="h-4 w-4 text-yellow-400" />
-
+              <div
+                className="h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{
+                  background: 'linear-gradient(135deg, #064E3B, #042A20)',
+                  boxShadow: '0 8px 24px -8px #064E3B',
+                }}
+              >
+                <Package className="h-4 w-4" style={{ color: '#E6CE91' }} />
               </div>
-
-              <span className="text-[10px] font-black text-[#586069] uppercase tracking-[0.2em]">Pending</span>
-
             </div>
+          </motion.div>
 
-            <h3 className="text-2xl font-black text-white tracking-tighter">
-
-              {orders.filter((o: any) => !o.admin_approved || o.status === 'pending' || o.status === 'awaiting_approval').length}
-
-            </h3>
-
-          </div>
-
-
-
-          <div className="rounded-3xl border border-white/[0.05] bg-[#0F1720]/60 backdrop-blur-xl p-5 shadow-2xl group hover:border-green-500/30 transition-all duration-500">
-
-            <div className="flex justify-between items-start mb-4">
-
-              <div className="p-2.5 rounded-xl bg-green-500/10 border border-green-500/20">
-
-                <CheckCircle className="h-4 w-4 text-green-400" />
-
+          <motion.div
+            whileHover={{ y: -4 }}
+            className="group relative rounded-xl p-4 overflow-hidden cursor-pointer transition-all duration-500"
+            style={{
+              background: 'linear-gradient(145deg, rgba(4, 19, 14, 0.95), rgba(5, 30, 22, 0.98))',
+              border: '1px solid rgba(0, 255, 178, 0.08)',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.02)',
+            }}
+          >
+            <div className="flex items-start justify-between mb-2">
+              <div className="flex-1">
+                <span className="text-[9px] font-bold tracking-[0.2em] uppercase" style={{ color: '#E6CE91' }}>
+                  Pending
+                </span>
+                <div className="mt-1.5 text-xl font-bold tracking-tight font-serif" style={{ color: '#F4F6F8' }}>
+                  {orders.filter((o: any) => !o.admin_approved || o.status === 'pending' || o.status === 'awaiting_approval').length}
+                </div>
               </div>
-
-              <span className="text-[10px] font-black text-[#586069] uppercase tracking-[0.2em]">Completed</span>
-
-            </div>
-
-            <h3 className="text-2xl font-black text-white tracking-tighter">
-
-              {orders.filter((o: any) => o.status === 'completed' || o.status === 'delivered').length}
-
-            </h3>
-
-          </div>
-
-
-
-          <div className="rounded-3xl border border-white/[0.05] bg-[#0F1720]/60 backdrop-blur-xl p-5 shadow-2xl group hover:border-purple-500/30 transition-all duration-500">
-
-            <div className="flex justify-between items-start mb-4">
-
-              <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20">
-
-                <DollarSign className="h-4 w-4 text-purple-400" />
-
+              <div
+                className="h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{
+                  background: 'linear-gradient(135deg, #064E3B, #042A20)',
+                  boxShadow: '0 8px 24px -8px #064E3B',
+                }}
+              >
+                <Clock className="h-4 w-4" style={{ color: '#E6CE91' }} />
               </div>
-
-              <span className="text-[10px] font-black text-[#586069] uppercase tracking-[0.2em]">Total Spent</span>
-
             </div>
+          </motion.div>
 
-            <h3 className="text-2xl font-black text-white tracking-tighter">
+          <motion.div
+            whileHover={{ y: -4 }}
+            className="group relative rounded-xl p-4 overflow-hidden cursor-pointer transition-all duration-500"
+            style={{
+              background: 'linear-gradient(145deg, rgba(4, 19, 14, 0.95), rgba(5, 30, 22, 0.98))',
+              border: '1px solid rgba(0, 255, 178, 0.08)',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.02)',
+            }}
+          >
+            <div className="flex items-start justify-between mb-2">
+              <div className="flex-1">
+                <span className="text-[9px] font-bold tracking-[0.2em] uppercase" style={{ color: '#E6CE91' }}>
+                  Completed
+                </span>
+                <div className="mt-1.5 text-xl font-bold tracking-tight font-serif" style={{ color: '#F4F6F8' }}>
+                  {orders.filter((o: any) => o.status === 'completed' || o.status === 'delivered').length}
+                </div>
+              </div>
+              <div
+                className="h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{
+                  background: 'linear-gradient(135deg, #064E3B, #042A20)',
+                  boxShadow: '0 8px 24px -8px #064E3B',
+                }}
+              >
+                <CheckCircle className="h-4 w-4" style={{ color: '#E6CE91' }} />
+              </div>
+            </div>
+          </motion.div>
 
-              ${orders.reduce((sum: number, o: any) => sum + (Number(o.total_amount) || 0), 0).toFixed(0)}
-
-            </h3>
-
-          </div>
+          <motion.div
+            whileHover={{ y: -4 }}
+            className="group relative rounded-xl p-4 overflow-hidden cursor-pointer transition-all duration-500"
+            style={{
+              background: 'linear-gradient(145deg, rgba(4, 19, 14, 0.95), rgba(5, 30, 22, 0.98))',
+              border: '1px solid rgba(0, 255, 178, 0.08)',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.02)',
+            }}
+          >
+            <div className="flex items-start justify-between mb-2">
+              <div className="flex-1">
+                <span className="text-[9px] font-bold tracking-[0.2em] uppercase" style={{ color: '#E6CE91' }}>
+                  Total Spent
+                </span>
+                <div className="mt-1.5 text-xl font-bold tracking-tight font-serif" style={{ color: '#F4F6F8' }}>
+                  ${orders.reduce((sum: number, o: any) => sum + (Number(o.total_amount) || 0), 0).toFixed(0)}
+                </div>
+              </div>
+              <div
+                className="h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{
+                  background: 'linear-gradient(135deg, #064E3B, #042A20)',
+                  boxShadow: '0 8px 24px -8px #064E3B',
+                }}
+              >
+                <DollarSign className="h-4 w-4" style={{ color: '#E6CE91' }} />
+              </div>
+            </div>
+          </motion.div>
 
         </motion.div>
 
@@ -1019,13 +1049,9 @@ const Orders = () => {
                         <div key={item.id} className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-white/[0.02] border border-white/[0.03] rounded-xl sm:rounded-2xl hover:bg-white/[0.05] transition-all">
 
                           <img
-
-                            src={item.product?.image || '/placeholder-image.jpg'}
-
-                            alt=""
-
+                            src={resolveMediaUrl(item.product?.image) || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=64&h=64&fit=crop'}
+                            alt={item.product?.name || 'Product'}
                             className="h-12 w-12 sm:h-16 sm:w-16 object-cover rounded-lg sm:rounded-xl border border-white/[0.05]"
-
                           />
 
                           <div className="flex-1 min-w-0">

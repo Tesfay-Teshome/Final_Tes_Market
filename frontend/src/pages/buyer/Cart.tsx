@@ -5,7 +5,7 @@ import { Minus, Plus, Trash2, ShoppingBag, Package, Clock, CheckCircle, XCircle 
 import { RootState } from '@/store';
 import { removeItem, updateQuantity, clearCart, setCart } from '@/store/slices/cartSlice';
 import { useToast } from '@/components/ui/use-toast';
-import { cartAPI, adminAPI, resolveMediaUrl } from '@/services/api';
+import { cartAPI, buyerAPI, resolveMediaUrl } from '@/services/api';
 import { useQuery } from '@tanstack/react-query';
 
 // Safely format money values coming from backend (which may be strings from Decimal fields)
@@ -48,7 +48,7 @@ const Cart = () => {
   // Fetch user orders to identify ordered products
   const { data: ordersData } = useQuery({
     queryKey: ['buyer-orders'],
-    queryFn: () => adminAPI.getBuyerOrders(),
+    queryFn: () => buyerAPI.getOrders(),
     enabled: isAuthenticated,
   });
 
@@ -62,10 +62,11 @@ const Cart = () => {
   // Simplified: Don't separate cart items - let users checkout normally
   // Only show info message if there are pending orders, but don't block checkout
   useEffect(() => {
-    if (ordersData?.data) {
+    const orders = Array.isArray(ordersData?.data) ? ordersData.data : ((ordersData as any)?.data?.results || (ordersData as any)?.data?.data || (ordersData as any)?.results || (ordersData as any)?.data || []);
+    if (orders.length > 0) {
       const orderedIds: string[] = [];
 
-      ordersData.data.forEach((order: any) => {
+      orders.forEach((order: any) => {
         order.items?.forEach((item: any) => {
           // Only track truly pending orders for info purposes
           if (order.status === 'pending' || order.status === 'awaiting_approval') {
@@ -235,9 +236,10 @@ const Cart = () => {
   };
 
   const getOrderStatus = (productId: string) => {
-    if (!ordersData?.data) return null;
+    const orders = Array.isArray(ordersData?.data) ? ordersData.data : ((ordersData as any)?.data?.results || (ordersData as any)?.data?.data || (ordersData as any)?.results || (ordersData as any)?.data || []);
+    if (orders.length === 0) return null;
 
-    for (const order of ordersData.data) {
+    for (const order of orders) {
       const orderItem = order.items?.find((item: any) => item.product.id === productId);
       if (orderItem && order.status !== 'cancelled' && order.status !== 'completed') {
         return {

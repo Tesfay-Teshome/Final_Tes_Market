@@ -633,6 +633,19 @@ export const reviewsAPI = {
     api.delete(`/api/reviews/${id}/`),
 };
 
+// Buyer API
+export const buyerAPI = {
+  // Orders
+  getOrders: (params?: any) => api.get('/api/buyer/orders/', { params }),
+  getOrder: (id: string) => api.get(`/api/buyer/orders/${id}/`),
+  
+  // Cart
+  getCart: () => api.get('/api/buyer/cart/'),
+  
+  // Wishlist
+  getWishlist: () => api.get('/api/buyer/wishlist/'),
+};
+
 // Vendor API
 export const vendorAPI = {
   // Dashboard

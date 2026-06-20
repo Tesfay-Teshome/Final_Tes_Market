@@ -3,12 +3,49 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate, Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { ShoppingBag, User, Mail, Lock, Store, ArrowRight, Sparkles, Shield, CheckCircle, Phone, MapPin, FileText, Camera, X, TrendingUp, Award, Zap, Globe, Heart, Star, Gift, Crown, Rocket, Target, Users, DollarSign, Package, Truck, Headphones } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  ShoppingBag, User, Mail, Lock, Store, ArrowRight, Sparkles, Shield,
+  CheckCircle, Phone, MapPin, FileText, Camera, X, TrendingUp, Award,
+  Zap, Globe, Heart, Star, Gift, Crown, Rocket, Target, Users, DollarSign,
+  Package, Truck, Headphones, Eye, EyeOff,
+} from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { authAPI } from '@/services/api';
 import bannerImage from '../images/banner.jpeg';
 import FadeIn from '@/components/animations/FadeIn';
+
+// ─── Luxury palette ────────────────────────────────────────────────────────────
+const LUX = {
+  ink: '#04130E',
+  emeraldDeep: '#022C22',
+  emerald: '#064E3B',
+  emeraldSoft: '#065F46',
+  gold: '#C9A24B',
+  goldSoft: '#E6CE91',
+  cream: '#F7F3EC',
+  paper: '#FBF9F4',
+};
+
+// ─── Animation variants ────────────────────────────────────────────────────────
+const floatAnimation = {
+  y: [0, -10, 0],
+  transition: { duration: 5, repeat: Infinity, ease: 'easeInOut' },
+};
+
+const shimmerAnimation = {
+  x: [-200, 300],
+  transition: { duration: 3, repeat: Infinity, ease: 'linear' },
+};
+
+const pulseGlow = {
+  boxShadow: [
+    '0 0 20px rgba(201,162,75,0.1)',
+    '0 0 40px rgba(201,162,75,0.25)',
+    '0 0 20px rgba(201,162,75,0.1)',
+  ],
+  transition: { duration: 3, repeat: Infinity, ease: 'easeInOut' },
+};
 
 const registerSchema = z.object({
   username: z.string()
@@ -28,7 +65,7 @@ const registerSchema = z.object({
   address: z.string().optional(),
 }).refine((data) => data.password === data.confirm_password, {
   message: "Passwords don't match",
-  path: ["confirm_password"],
+  path: ['confirm_password'],
 }).refine(
   (data) => {
     if (data.user_type === 'vendor') {
@@ -37,12 +74,61 @@ const registerSchema = z.object({
     return true;
   },
   {
-    message: "Store information is required for vendors",
-    path: ["store_name"],
+    message: 'Store information is required for vendors',
+    path: ['store_name'],
   }
 );
 
 type RegisterFormData = z.infer<typeof registerSchema>;
+
+// ─── Sub-components ────────────────────────────────────────────────────────────
+const FieldLabel = ({ children, isVendor = false }: { children: React.ReactNode; isVendor?: boolean }) => (
+  <label
+    className="block text-xs font-semibold tracking-[0.16em] uppercase mb-2"
+    style={{ color: isVendor ? LUX.gold : LUX.emeraldDeep }}
+  >
+    {children}
+  </label>
+);
+
+const inputBase = (isVendor = false) => ({
+  border: `1.5px solid ${isVendor ? `${LUX.gold}44` : 'rgba(6,78,59,0.15)'}`,
+  background: LUX.paper,
+  color: LUX.emeraldDeep,
+}) as React.CSSProperties;
+
+const focusStyle = (isVendor = false) => ({
+  borderColor: isVendor ? LUX.gold : LUX.emerald,
+  boxShadow: `0 0 0 3px ${isVendor ? `${LUX.gold}18` : `${LUX.emerald}18`}`,
+});
+
+const blurStyle = (isVendor = false) => ({
+  borderColor: isVendor ? `${LUX.gold}44` : 'rgba(6,78,59,0.15)',
+  boxShadow: 'none',
+});
+
+const FieldError = ({ message }: { message?: string }) =>
+  message ? (
+    <motion.p
+      className="mt-1.5 text-xs flex items-center gap-1.5"
+      style={{ color: '#dc2626' }}
+      initial={{ opacity: 0, y: -6 }}
+      animate={{ opacity: 1, y: 0 }}
+    >
+      <span className="w-1 h-1 rounded-full bg-red-600 inline-block" />
+      {message}
+    </motion.p>
+  ) : null;
+
+// ─── Sidebar item variants ─────────────────────────────────────────────────────
+const sideItem = {
+  hidden: { opacity: 0, x: -20 },
+  visible: (i: number) => ({
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.5, delay: 0.3 + i * 0.1, ease: 'easeOut' },
+  }),
+};
 
 const Register = () => {
   const navigate = useNavigate();
@@ -51,6 +137,8 @@ const Register = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [profileImage, setProfileImage] = useState<File | null>(null);
   const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -60,12 +148,9 @@ const Register = () => {
     setValue,
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
-    defaultValues: {
-      user_type: 'buyer',
-    },
+    defaultValues: { user_type: 'buyer' },
   });
 
-  // Ensure user_type is always synced with userType state
   useEffect(() => {
     setValue('user_type', userType);
   }, [userType, setValue]);
@@ -73,33 +158,17 @@ const Register = () => {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
-        toast({
-          title: 'File too large',
-          description: 'Profile image must be less than 5MB',
-          variant: 'destructive',
-        });
+        toast({ title: 'File too large', description: 'Profile image must be less than 5MB', variant: 'destructive' });
         return;
       }
-      
-      // Validate file type
       if (!file.type.startsWith('image/')) {
-        toast({
-          title: 'Invalid file type',
-          description: 'Please upload an image file',
-          variant: 'destructive',
-        });
+        toast({ title: 'Invalid file type', description: 'Please upload an image file', variant: 'destructive' });
         return;
       }
-      
       setProfileImage(file);
-      
-      // Create preview
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfileImagePreview(reader.result as string);
-      };
+      reader.onloadend = () => setProfileImagePreview(reader.result as string);
       reader.readAsDataURL(file);
     }
   };
@@ -107,16 +176,12 @@ const Register = () => {
   const removeProfileImage = () => {
     setProfileImage(null);
     setProfileImagePreview(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const onSubmit = async (data: RegisterFormData) => {
     try {
       setIsSubmitting(true);
-      
-      // Create FormData to handle file upload
       const formData = new FormData();
       formData.append('email', data.email);
       formData.append('username', data.username);
@@ -126,22 +191,20 @@ const Register = () => {
       formData.append('last_name', data.last_name);
       formData.append('full_name', `${data.first_name} ${data.last_name}`);
       formData.append('user_type', data.user_type);
-      
       if (data.store_name) formData.append('store_name', data.store_name);
       if (data.store_description) formData.append('store_description', data.store_description);
       if (data.phone) formData.append('phone', data.phone);
       if (data.address) formData.append('address', data.address);
       if (profileImage) formData.append('profile_image', profileImage);
-      
+
       await authAPI.register(formData);
 
       toast({
         title: 'Registration successful',
-        description: userType === 'vendor' 
+        description: userType === 'vendor'
           ? 'Your vendor account is pending approval. We will notify you once approved.'
           : 'Please login with your credentials.',
       });
-
       navigate('/login');
     } catch (error: any) {
       console.error('Registration error:', error);
@@ -151,24 +214,12 @@ const Register = () => {
           const errorMessages = Object.entries(backendErrors)
             .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
             .join('\n');
-          toast({
-            title: 'Registration failed',
-            description: errorMessages,
-            variant: 'destructive',
-          });
+          toast({ title: 'Registration failed', description: errorMessages, variant: 'destructive' });
         } else {
-          toast({
-            title: 'Registration failed',
-            description: error.response.data.detail || 'An error occurred during registration.',
-            variant: 'destructive',
-          });
+          toast({ title: 'Registration failed', description: error.response.data.detail || 'An error occurred during registration.', variant: 'destructive' });
         }
       } else {
-        toast({
-          title: 'Registration failed',
-          description: 'An unexpected error occurred. Please try again later.',
-          variant: 'destructive',
-        });
+        toast({ title: 'Registration failed', description: 'An unexpected error occurred. Please try again later.', variant: 'destructive' });
       }
     } finally {
       setIsSubmitting(false);
@@ -176,835 +227,786 @@ const Register = () => {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 min-h-screen">
-      {/* Left Side - Brand Section */}
+    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2" style={{ background: LUX.paper }}>
+
+      {/* ═══════════════════════════════════════════════
+          LEFT SIDEBAR
+         ═══════════════════════════════════════════════ */}
       <motion.div
-        className="hidden lg:flex relative overflow-hidden"
+        className="hidden lg:flex relative overflow-hidden flex-col"
         style={{
-          backgroundImage: `linear-gradient(rgba(18, 49, 117, 0.7), rgba(67, 20, 95, 0.7), rgba(30, 27, 75, 0.7)), url(${bannerImage})`,
+          backgroundImage: `url(${bannerImage})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat'
         }}
-        initial={{ opacity: 0, x: -50 }}
+        initial={{ opacity: 0, x: -40 }}
         animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.8 }}
+        transition={{ duration: 0.8, ease: 'easeOut' }}
       >
-        {/* Animated background elements */}
-        <div className="absolute inset-0">
-          <div className="absolute top-16 right-24 w-36 h-36 bg-white/10 rounded-full blur-xl animate-pulse"></div>
-          <div className="absolute top-32 left-28 w-20 h-20 bg-yellow-300/20 rounded-full blur-lg animate-bounce"></div>
-          <div className="absolute bottom-28 right-20 w-44 h-44 bg-pink-300/15 rounded-full blur-2xl animate-pulse"></div>
-          <div className="absolute bottom-16 left-24 w-32 h-32 bg-cyan-300/20 rounded-full blur-xl animate-bounce"></div>
-          
-          {/* Geometric shapes */}
-          <div className="absolute top-1/3 right-1/3 w-14 h-14 border-2 border-white/20 rotate-45 animate-spin-slow"></div>
-          <div className="absolute bottom-1/4 left-1/4 w-10 h-10 border-2 border-purple-300/30 rounded-full animate-pulse"></div>
-          <div className="absolute top-1/2 left-1/2 w-6 h-6 bg-white/20 rotate-45 animate-ping"></div>
-        </div>
-        
-        <div className="relative z-10 flex flex-col justify-center min-h-screen p-12 text-white">
+        {/* Overlay */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background: `linear-gradient(160deg, ${LUX.ink} 0%, rgba(2,44,34,0.93) 45%, rgba(4,19,14,0.88) 100%)`,
+          }}
+        />
+
+        {/* Ambient orbs with animation */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-          >
-            <Link to="/" className="flex items-center mb-8">
-              <ShoppingBag className="h-10 w-10 mr-3" />
-              <span className="text-2xl font-bold">TesMarket</span>
+            animate={floatAnimation}
+            className="absolute top-0 left-0 w-[400px] h-[400px] rounded-full blur-[120px] opacity-25"
+            style={{ background: `radial-gradient(circle, ${LUX.emeraldSoft}, transparent 70%)` }}
+          />
+          <motion.div
+            animate={{ ...floatAnimation, transition: { ...floatAnimation.transition, delay: 1 } }}
+            className="absolute bottom-0 right-0 w-[300px] h-[300px] rounded-full blur-[90px] opacity-20"
+            style={{ background: `radial-gradient(circle, ${LUX.gold}, transparent 70%)` }}
+          />
+        </div>
+
+        {/* Gold hairlines with shimmer */}
+        <div className="absolute top-0 left-0 right-0 h-px overflow-hidden">
+          <div style={{ background: `linear-gradient(90deg, transparent, ${LUX.gold}, transparent)`, height: '100%' }} />
+          <motion.div
+            className="absolute top-0 left-0 w-20 h-full"
+            style={{ background: `linear-gradient(90deg, transparent, ${LUX.goldSoft}, transparent)` }}
+            animate={shimmerAnimation}
+          />
+        </div>
+        <div className="absolute right-0 top-16 bottom-16 w-px" style={{ background: `linear-gradient(180deg, transparent, ${LUX.gold}, transparent)` }} />
+
+        <div className="relative z-10 flex flex-col h-full p-8 xl:p-10 overflow-y-auto">
+
+          {/* Logo with hover glow */}
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.2 }}>
+            <Link to="/" className="inline-flex items-center gap-3">
+              <motion.div
+                className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg"
+                style={{ background: `linear-gradient(135deg, ${LUX.emeraldSoft}, ${LUX.emeraldDeep})`, border: `1px solid ${LUX.gold}55` }}
+                whileHover={pulseGlow}
+              >
+                <ShoppingBag className="h-5 w-5" style={{ color: LUX.goldSoft }} />
+              </motion.div>
+              <span className="text-xl font-serif font-semibold text-white tracking-wide">TesMarket</span>
             </Link>
-            
-            <h1 className="text-4xl font-bold mb-3 leading-tight">
-              Join the Future of
-              <span className="block bg-gradient-to-r from-emerald-300 via-green-300 to-teal-300 bg-clip-text text-transparent">
-                Digital Commerce
+          </motion.div>
+
+          {/* Headline */}
+          <motion.div
+            className="mt-8 mb-6"
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.35 }}
+          >
+            <div className="inline-flex items-center gap-2.5 mb-3">
+              <Sparkles className="h-3.5 w-3.5" style={{ color: LUX.gold }} />
+              <span className="text-[9px] font-semibold tracking-[0.32em] uppercase" style={{ color: LUX.goldSoft }}>
+                Join Today
+              </span>
+            </div>
+            <h1 className="font-serif text-3xl xl:text-4xl font-semibold text-white leading-[1.1] mb-3">
+              Join the Future<br />
+              <span
+                className="italic font-light"
+                style={{
+                  backgroundImage: `linear-gradient(90deg, ${LUX.goldSoft}, ${LUX.gold})`,
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                }}
+              >
+                of Commerce
               </span>
             </h1>
-            
-            <p className="text-xl text-emerald-100 mb-4 leading-relaxed">
-              Connect with thousands of customers and vendors to grow your business with our innovative platform.
+            <p className="text-white/65 leading-relaxed text-sm max-w-xs">
+              Connect with thousands of customers and vendors to grow your business.
             </p>
-            
-            <div className="space-y-4">
-              {/* Top Advertisement Section */}
-              <motion.div 
-                className="p-4 rounded-2xl bg-gradient-to-br from-emerald-600/80 via-green-600/70 via-teal-600/75 to-teal-800/85 border-2 border-emerald-400/60 shadow-2xl shadow-emerald-500/30 backdrop-blur-sm"
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                whileHover={{ scale: 1.02, y: -2 }}
-                transition={{ delay: 0.3, type: "spring", stiffness: 300 }}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="bg-gradient-to-br from-emerald-400 to-green-500 rounded-full p-2 shadow-lg">
-                    <Crown className="h-4 w-4 text-white" />
-                  </div>
-                  <span className="text-xs font-bold text-emerald-200 bg-emerald-500/30 px-2 py-1 rounded-full">PREMIUM</span>
-                </div>
-                <h4 className="text-sm font-bold text-white mb-1">🚀 Launch Your Business Today!</h4>
-                <p className="text-xs text-emerald-100 leading-relaxed">Join 50,000+ successful vendors earning $2M+ monthly. Start selling in 24 hours!</p>
-                <div className="flex items-center mt-2 space-x-2">
-                  <div className="flex -space-x-1">
-                    {[...Array(3)].map((_, i) => (
-                      <div key={i} className="w-4 h-4 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 border border-white/20"></div>
-                    ))}
-                  </div>
-                  <span className="text-xs text-emerald-200">+50K vendors</span>
-                </div>
-              </motion.div>
-
-              {/* Feature Cards */}
-              <motion.div 
-                className="flex items-center space-x-4 p-4 rounded-xl bg-gradient-to-r from-emerald-700/80 via-green-700/75 via-teal-700/70 to-emerald-800/85 border-2 border-emerald-400/60 shadow-2xl shadow-emerald-500/30 backdrop-blur-sm"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                whileHover={{ scale: 1.02, x: 5 }}
-                transition={{ delay: 0.4, type: "spring", stiffness: 300 }}
-              >
-                <div className="bg-gradient-to-br from-green-400 to-emerald-500 rounded-full p-3 shadow-lg">
-                  <Shield className="h-5 w-5 text-white" />
-                </div>
-                <div>
-                  <h4 className="text-base font-bold text-white">Bank-Level Security</h4>
-                  <p className="text-xs text-emerald-100">256-bit SSL encryption & fraud protection</p>
-              </div>
-              </motion.div>
-              
-              <motion.div 
-                className="flex items-center space-x-4 p-4 rounded-xl bg-gradient-to-r from-emerald-700/80 via-green-700/75 via-teal-700/70 to-emerald-800/85 border-2 border-emerald-400/60 shadow-2xl shadow-emerald-500/30 backdrop-blur-sm"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                whileHover={{ scale: 1.02, x: 5 }}
-                transition={{ delay: 0.5, type: "spring", stiffness: 300 }}
-              >
-                <div className="bg-gradient-to-br from-emerald-400 to-green-500 rounded-full p-3 shadow-lg">
-                  <Rocket className="h-5 w-5 text-white" />
-                </div>
-                <div>
-                  <h4 className="text-base font-bold text-white">Lightning Fast Setup</h4>
-                  <p className="text-xs text-emerald-100">Get your store live in under 5 minutes</p>
-                </div>
-              </motion.div>
-              
-              <motion.div 
-                className="flex items-center space-x-4 p-4 rounded-xl bg-gradient-to-r from-emerald-700/80 via-green-700/75 via-teal-700/70 to-emerald-800/85 border-2 border-emerald-400/60 shadow-2xl shadow-emerald-500/30 backdrop-blur-sm"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                whileHover={{ scale: 1.02, x: 5 }}
-                transition={{ delay: 0.6, type: "spring", stiffness: 300 }}
-              >
-                <div className="bg-gradient-to-br from-emerald-400 to-green-500 rounded-full p-3 shadow-lg">
-                  <Globe className="h-5 w-5 text-white" />
-                </div>
-                <div>
-                  <h4 className="text-base font-bold text-white">Global Marketplace</h4>
-                  <p className="text-xs text-emerald-100">Reach customers in 150+ countries</p>
-                </div>
-              </motion.div>
-
-              {/* Middle Advertisement */}
-              <motion.div 
-                className="p-4 rounded-2xl bg-gradient-to-br from-emerald-700/85 via-green-700/80 via-teal-700/75 to-emerald-900/90 border-2 border-emerald-400/60 shadow-2xl shadow-emerald-500/30 backdrop-blur-sm"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                whileHover={{ scale: 1.02, rotateY: 2 }}
-                transition={{ delay: 0.7, type: "spring", stiffness: 300 }}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="bg-gradient-to-br from-emerald-400 to-green-500 rounded-full p-2 shadow-lg">
-                    <Gift className="h-4 w-4 text-white" />
-                  </div>
-                  <span className="text-xs font-bold text-emerald-200 bg-emerald-500/30 px-2 py-1 rounded-full">LIMITED OFFER</span>
-                </div>
-                <h4 className="text-sm font-bold text-white mb-1">🎁 First Month FREE!</h4>
-                <p className="text-xs text-emerald-100 leading-relaxed">No setup fees, no hidden costs. Start earning from day one with our premium tools.</p>
-                <div className="mt-2 flex items-center justify-between">
-                  <span className="text-xs text-emerald-200">Expires in 7 days</span>
-                  <div className="flex items-center space-x-1">
-                    <Star className="h-3 w-3 text-yellow-400 fill-current" />
-                    <span className="text-xs text-emerald-200">4.9/5 rating</span>
-                  </div>
-                </div>
-              </motion.div>
-              
-              {/* Success metrics */}
-              <motion.div 
-                className="p-4 rounded-2xl bg-gradient-to-br from-slate-700/80 via-gray-700/75 via-zinc-700/70 to-zinc-900/85 border-2 border-gray-500/60 shadow-2xl shadow-gray-500/30 backdrop-blur-sm"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                whileHover={{ scale: 1.01 }}
-                transition={{ duration: 0.8, delay: 0.8 }}
-              >
-                <h4 className="text-base font-bold text-white mb-4 text-center flex items-center justify-center">
-                  <TrendingUp className="h-4 w-4 mr-2" />
-                  Join Our Success Story
-                </h4>
-                <div className="grid grid-cols-2 gap-4 text-center">
-                  <div className="bg-white/10 rounded-xl p-3 backdrop-blur-sm">
-                    <div className="text-2xl font-bold text-emerald-300 flex items-center justify-center">
-                      <DollarSign className="h-5 w-5 mr-1" />
-                      $2M+
-                    </div>
-                    <div className="text-xs text-emerald-200">Monthly Sales</div>
-                  </div>
-                  <div className="bg-white/10 rounded-xl p-3 backdrop-blur-sm">
-                    <div className="text-2xl font-bold text-yellow-300 flex items-center justify-center">
-                      <Users className="h-5 w-5 mr-1" />
-                      50K+
-                    </div>
-                    <div className="text-xs text-emerald-200">Active Vendors</div>
-                  </div>
-                  <div className="bg-white/10 rounded-xl p-3 backdrop-blur-sm">
-                    <div className="text-2xl font-bold text-emerald-200 flex items-center justify-center">
-                      <Package className="h-5 w-5 mr-1" />
-                      1M+
-                    </div>
-                    <div className="text-xs text-emerald-200">Products Sold</div>
-                  </div>
-                  <div className="bg-white/10 rounded-xl p-3 backdrop-blur-sm">
-                    <div className="text-2xl font-bold text-emerald-200 flex items-center justify-center">
-                      <Award className="h-5 w-5 mr-1" />
-                      99.8%
-                    </div>
-                    <div className="text-xs text-emerald-200">Satisfaction</div>
-                  </div>
-                </div>
-              </motion.div>
-
-              {/* Bottom Advertisement */}
-              <motion.div 
-                className="p-4 rounded-2xl bg-gradient-to-br from-emerald-700/85 via-green-700/80 via-teal-700/75 to-emerald-900/90 border-2 border-emerald-400/60 shadow-2xl shadow-emerald-500/30 backdrop-blur-sm"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                whileHover={{ scale: 1.02, y: -2 }}
-                transition={{ delay: 0.9, type: "spring", stiffness: 300 }}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="bg-gradient-to-br from-emerald-400 to-green-500 rounded-full p-2 shadow-lg">
-                    <Zap className="h-4 w-4 text-white" />
-                  </div>
-                  <span className="text-xs font-bold text-emerald-200 bg-emerald-500/30 px-2 py-1 rounded-full">TRENDING</span>
-                </div>
-                <h4 className="text-sm font-bold text-white mb-1">⚡ AI-Powered Analytics</h4>
-                <p className="text-xs text-emerald-100 leading-relaxed">Boost sales by 300% with smart insights, automated pricing, and trend predictions.</p>
-                <div className="flex items-center mt-2 space-x-3">
-                  <div className="flex items-center space-x-1">
-                    <Truck className="h-3 w-3 text-emerald-300" />
-                    <span className="text-xs text-emerald-200">Free Shipping</span>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <Headphones className="h-3 w-3 text-emerald-300" />
-                    <span className="text-xs text-emerald-200">24/7 Support</span>
-                  </div>
-                </div>
-              </motion.div>
-
-              {/* Testimonial */}
-              <motion.div 
-                className="p-4 rounded-2xl bg-gradient-to-br from-emerald-700/85 via-green-700/80 via-teal-700/75 to-emerald-900/90 border-2 border-emerald-400/60 shadow-2xl shadow-emerald-500/30 backdrop-blur-sm"
-                initial={{ opacity: 0, rotateX: -10 }}
-                animate={{ opacity: 1, rotateX: 0 }}
-                whileHover={{ scale: 1.02, rotateX: 2 }}
-                transition={{ delay: 1.0, type: "spring", stiffness: 300 }}
-              >
-                <div className="flex items-center mb-3">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center mr-3">
-                    <span className="text-xs font-bold text-white">JD</span>
-                  </div>
-                  <div>
-                    <h5 className="text-sm font-bold text-white">John Doe</h5>
-                    <div className="flex items-center space-x-1">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} className="h-3 w-3 text-yellow-400 fill-current" />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                <p className="text-xs text-emerald-100 italic leading-relaxed">
-                  "TesMarket transformed my small business into a $100K/month empire. The tools are incredible!"
-                </p>
-                <div className="mt-2 flex items-center justify-between">
-                  <span className="text-xs text-emerald-200">Verified Vendor</span>
-                  <div className="flex items-center space-x-1">
-                    <Heart className="h-3 w-3 text-red-400 fill-current" />
-                    <span className="text-xs text-emerald-200">2.5K likes</span>
-                  </div>
-                </div>
-              </motion.div>
-            </div>
           </motion.div>
+
+          {/* Sidebar cards - Compact */}
+          <div className="flex flex-col gap-3 flex-1">
+
+            {/* Launch promo - Compact */}
+            <motion.div
+              custom={0}
+              variants={sideItem}
+              initial="hidden"
+              animate="visible"
+              whileHover={{ x: 6, scale: 1.01, transition: { duration: 0.2 } }}
+              className="rounded-xl p-3.5 backdrop-blur-md"
+              style={{ background: 'rgba(201,162,75,0.08)', border: `1px solid ${LUX.gold}40` }}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${LUX.gold}, #B8902F)` }}>
+                    <Crown className="h-3.5 w-3.5" style={{ color: LUX.emeraldDeep }} />
+                  </div>
+                  <span className="text-xs font-serif font-semibold text-white">Launch Your Store</span>
+                </div>
+                <span className="text-[8px] font-semibold tracking-[0.22em] uppercase px-2 py-0.5 rounded-full" style={{ background: `${LUX.gold}22`, color: LUX.goldSoft, border: `1px solid ${LUX.gold}44` }}>
+                  PREMIUM
+                </span>
+              </div>
+              <p className="text-[10px] text-white/60 leading-relaxed">Join 50,000+ successful vendors. Start selling in 24 hours!</p>
+              <div className="flex items-center gap-1 mt-2">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="w-4 h-4 rounded-full border border-emerald-900" style={{ background: `linear-gradient(135deg, ${LUX.gold}, ${LUX.emerald})` }} />
+                ))}
+                <span className="text-[9px] text-white/55 ml-1.5">+50K vendors</span>
+              </div>
+            </motion.div>
+
+            {/* Feature rows - Compact */}
+            {[
+              { icon: Shield, title: 'Bank-Level Security', sub: '256-bit SSL encryption' },
+              { icon: Rocket, title: 'Lightning Fast Setup', sub: 'Get live in 5 minutes' },
+              { icon: Globe, title: 'Global Marketplace', sub: 'Reach 150+ countries' },
+            ].map((f, i) => (
+              <motion.div
+                key={i}
+                custom={i + 1}
+                variants={sideItem}
+                initial="hidden"
+                animate="visible"
+                whileHover={{ x: 6, scale: 1.01, transition: { duration: 0.2 } }}
+                className="flex items-center gap-3 rounded-xl p-3 backdrop-blur-md"
+                style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${LUX.gold}25` }}
+              >
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ background: `linear-gradient(135deg, ${LUX.emerald}, ${LUX.emeraldDeep})` }}>
+                  <f.icon className="h-4 w-4" style={{ color: LUX.goldSoft }} />
+                </div>
+                <div>
+                  <h4 className="text-xs font-serif font-semibold text-white">{f.title}</h4>
+                  <p className="text-[10px] text-white/55 mt-0.5">{f.sub}</p>
+                </div>
+              </motion.div>
+            ))}
+
+            {/* Free first month - Compact */}
+            <motion.div
+              custom={4}
+              variants={sideItem}
+              initial="hidden"
+              animate="visible"
+              whileHover={{ x: 6, scale: 1.01, transition: { duration: 0.2 } }}
+              className="rounded-xl p-3.5 backdrop-blur-md"
+              style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${LUX.gold}18` }}
+            >
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${LUX.emerald}, ${LUX.emeraldDeep})` }}>
+                  <Gift className="h-3.5 w-3.5" style={{ color: LUX.goldSoft }} />
+                </div>
+                <span className="text-[8px] font-semibold tracking-[0.22em] uppercase px-2 py-0.5 rounded-full" style={{ background: `${LUX.gold}22`, color: LUX.goldSoft, border: `1px solid ${LUX.gold}44` }}>
+                  LIMITED
+                </span>
+              </div>
+              <h4 className="text-xs font-serif font-semibold text-white mb-0.5">First Month FREE!</h4>
+              <p className="text-[10px] text-white/60 leading-relaxed">No hidden costs. Start earning from day one.</p>
+              <div className="flex items-center justify-between mt-2">
+                <span className="text-[9px] text-white/45">Expires in 7 days</span>
+                <div className="flex items-center gap-1">
+                  <Star className="h-2.5 w-2.5 fill-current" style={{ color: LUX.gold }} />
+                  <span className="text-[9px] text-white/55">4.9/5</span>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Stats - Compact */}
+            <motion.div
+              custom={5}
+              variants={sideItem}
+              initial="hidden"
+              animate="visible"
+              className="rounded-xl p-3.5 backdrop-blur-md"
+              style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${LUX.gold}18` }}
+            >
+              <div className="flex items-center gap-2 mb-2.5">
+                <TrendingUp className="h-3 w-3" style={{ color: LUX.gold }} />
+                <span className="text-[9px] font-semibold tracking-[0.26em] uppercase" style={{ color: LUX.goldSoft }}>
+                  Success Story
+                </span>
+              </div>
+              <div className="grid grid-cols-4 gap-2">
+                {[
+                  { icon: DollarSign, value: '$2M+', label: 'Sales' },
+                  { icon: Users, value: '50K+', label: 'Vendors' },
+                  { icon: Package, value: '1M+', label: 'Products' },
+                  { icon: Award, value: '99.8%', label: 'Rating' },
+                ].map((s, i) => (
+                  <div key={i} className="rounded-lg p-2 text-center" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                    <div className="flex items-center justify-center gap-1 mb-0.5">
+                      <s.icon className="h-3 w-3" style={{ color: LUX.gold }} />
+                      <span className="text-xs font-serif font-bold text-white">{s.value}</span>
+                    </div>
+                    <span className="text-[8px] text-white/50">{s.label}</span>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+
+            {/* Testimonial - Compact */}
+            <motion.div
+              custom={6}
+              variants={sideItem}
+              initial="hidden"
+              animate="visible"
+              className="rounded-xl p-3 backdrop-blur-md"
+              style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${LUX.gold}18` }}
+            >
+              <div className="flex items-start gap-2.5">
+                <div className="font-serif text-2xl leading-none select-none shrink-0" style={{ color: LUX.goldSoft }}>"</div>
+                <div className="flex-1">
+                  <p className="text-[10px] text-white/60 italic leading-relaxed mb-2">
+                    "TesMarket transformed my business into a $100K/month empire!"
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold" style={{ background: `linear-gradient(135deg, ${LUX.emeraldSoft}, ${LUX.emeraldDeep})`, color: LUX.goldSoft }}>
+                      JD
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-semibold text-white">John Doe</p>
+                      <div className="flex gap-0.5">
+                        {[...Array(5)].map((_, i) => (
+                          <Star key={i} className="h-2 w-2 fill-current" style={{ color: LUX.gold }} />
+                        ))}
+                      </div>
+                    </div>
+                    <div className="ml-auto flex items-center gap-1">
+                      <Heart className="h-2.5 w-2.5 fill-current text-rose-400" />
+                      <span className="text-[9px] text-white/45">2.5K</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+
+          {/* Footer */}
+          <div className="mt-6 h-px w-full" style={{ background: `linear-gradient(90deg, transparent, ${LUX.gold}44, transparent)` }} />
+          <p className="mt-3 text-[9px] text-white/30 tracking-wider text-center">© TesMarket · Premium Marketplace</p>
         </div>
       </motion.div>
-      
-      {/* Right Side - Form Section */}
+
+      {/* ═══════════════════════════════════════════════
+          RIGHT — REGISTER FORM
+         ═══════════════════════════════════════════════ */}
       <motion.div
-        className="w-full bg-white p-3 sm:p-6 md:p-8 lg:p-12 flex items-start justify-center relative min-h-screen pt-12"
-        initial={{ opacity: 0, x: -50 }}
+        className="flex items-start justify-center min-h-screen px-4 sm:px-6 lg:px-8 py-10 relative overflow-hidden"
+        style={{
+          background: userType === 'vendor'
+            ? `linear-gradient(135deg, ${LUX.paper}, ${LUX.cream})`
+            : LUX.paper,
+          transition: 'background 0.5s ease'
+        }}
+        initial={{ opacity: 0, x: 40 }}
         animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.8 }}
+        transition={{ duration: 0.8, ease: 'easeOut' }}
       >
-        {/* Decorative emerald/green background elements */}
-        <div className="absolute inset-0 overflow-hidden bg-gradient-to-br from-emerald-50/50 via-white to-green-50/50">
-          <div className="absolute -top-20 -right-20 w-96 h-96 bg-gradient-to-br from-emerald-200/40 to-green-200/40 rounded-full opacity-40 blur-3xl animate-pulse"></div>
-          <div className="absolute top-1/2 -left-20 w-80 h-80 bg-gradient-to-tr from-teal-200/40 to-emerald-200/40 rounded-full opacity-40 blur-3xl animate-pulse delay-700"></div>
-          <div className="absolute -bottom-20 -right-10 w-80 h-80 bg-gradient-to-br from-green-200/40 to-emerald-200/40 rounded-full opacity-40 blur-3xl animate-pulse delay-1000"></div>
+        {/* Ambient blobs with animation */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <motion.div
+            animate={floatAnimation}
+            className="absolute -top-24 -right-24 w-96 h-96 rounded-full blur-[100px] opacity-25"
+            style={{ background: `radial-gradient(circle, ${userType === 'vendor' ? LUX.gold : LUX.emeraldSoft}44, transparent)` }}
+          />
+          <motion.div
+            animate={{ ...floatAnimation, transition: { ...floatAnimation.transition, delay: 2 } }}
+            className="absolute bottom-0 -left-16 w-72 h-72 rounded-full blur-[80px] opacity-15"
+            style={{ background: `radial-gradient(circle, ${userType === 'vendor' ? `${LUX.gold}55` : LUX.gold}33, transparent)` }}
+          />
         </div>
 
-        <motion.div
-          className="w-full max-w-4xl relative z-10"
-          initial={{ opacity: 0, x: 50 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.8 }}
-        >
-          <div className="bg-white rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 border border-gray-100 max-w-4xl w-full relative z-10">
-            <div className="lg:hidden mb-4">
-              <Link to="/" className="flex items-center justify-center text-blue-600">
-                <ShoppingBag className="h-8 w-8 mr-2" />
-                <span className="text-lg font-bold text-gray-900">TesMarket</span>
-              </Link>
-            </div>
-            
-            <div className="relative mb-6">
-              <div className="absolute -inset-1 bg-gradient-to-r from-emerald-600 via-green-600 to-emerald-700 rounded-lg blur opacity-25"></div>
-              <div className="relative bg-white rounded-lg p-6 shadow-xl">
-                <h2 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 via-green-600 to-emerald-700 bg-clip-text text-transparent mb-3">
-                  Create Your Account
-                </h2>
-                <p className="text-lg text-gray-600 font-medium">Join thousands of users and start your journey today</p>
-              </div>
-            </div>
+        <div className="relative z-10 w-full max-w-lg">
 
-            <motion.form 
-            onSubmit={handleSubmit(onSubmit)} 
-            className="space-y-4"
+          {/* Mobile logo */}
+          <div className="lg:hidden text-center mb-6">
+            <Link to="/" className="inline-flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${LUX.emeraldSoft}, ${LUX.emeraldDeep})` }}>
+                <ShoppingBag className="h-5 w-5" style={{ color: LUX.goldSoft }} />
+              </div>
+              <span className="text-xl font-serif font-semibold" style={{ color: LUX.emeraldDeep }}>TesMarket</span>
+            </Link>
+          </div>
+
+          {/* Card with color transition */}
+          <motion.div
+            className="rounded-3xl p-6 sm:p-8 shadow-2xl"
+            style={{
+              background: '#fff',
+              border: `1px solid ${userType === 'vendor' ? `${LUX.gold}20` : 'rgba(6,78,59,0.08)'}`,
+              boxShadow: `0 40px 100px -30px rgba(4,19,14,0.18), 0 0 0 1px ${userType === 'vendor' ? `${LUX.gold}10` : 'rgba(201,162,75,0.06)'}`,
+              transition: 'all 0.5s ease',
+            }}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.5 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
           >
-            <div className="grid grid-cols-2 gap-4">
-              <motion.button
-                type="button"
-                onClick={() => setUserType('buyer')}
-                className={`p-4 rounded-lg border-2 transition-all duration-300 ${
-                  userType === 'buyer'
-                    ? 'border-emerald-500 bg-gradient-to-br from-emerald-50 to-emerald-100 shadow-md ring-2 ring-emerald-500/20'
-                    : 'border-gray-300 hover:border-emerald-400 hover:shadow-md bg-white'
-                }`}
-                whileHover={{ scale: 1.03, y: -3 }}
-                whileTap={{ scale: 0.97 }}
-                transition={{ type: "spring", stiffness: 300 }}
-              >
-                <motion.div
-                  animate={{ rotate: userType === 'buyer' ? [0, 10, -10, 0] : 0 }}
-                  transition={{ duration: 0.5 }}
-                >
-                  <User className={`h-6 w-6 mx-auto mb-2 ${
-                    userType === 'buyer' ? 'text-emerald-600' : 'text-gray-400'
-                  }`} />
-                </motion.div>
-                <p className={`text-sm font-bold ${
-                  userType === 'buyer' ? 'text-emerald-600' : 'text-gray-600'
-                }`}>
-                  Buyer Account
-                </p>
-                <p className={`text-xs mt-1 font-medium ${
-                  userType === 'buyer' ? 'text-emerald-500' : 'text-gray-500'
-                }`}>
-                  Shop & Discover
-                </p>
-              </motion.button>
-
-              <motion.button
-                type="button"
-                onClick={() => setUserType('vendor')}
-                className={`p-4 rounded-lg border-2 transition-all duration-300 ${
-                  userType === 'vendor'
-                    ? 'border-green-600 bg-gradient-to-br from-green-50 to-green-100 shadow-md ring-2 ring-green-600/20'
-                    : 'border-gray-300 hover:border-green-500 hover:shadow-md bg-white'
-                }`}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.97 }}
-                transition={{ type: "spring", stiffness: 300 }}
-              >
-                <motion.div
-                  animate={{ rotate: userType === 'vendor' ? [0, 10, -10, 0] : 0 }}
-                  transition={{ duration: 0.5 }}
-                >
-                  <Store className={`h-6 w-6 mx-auto mb-2 ${
-                    userType === 'vendor' ? 'text-emerald-600' : 'text-gray-400'
-                  }`} />
-                </motion.div>
-                <p className={`text-sm font-bold ${
-                  userType === 'vendor' ? 'text-emerald-600' : 'text-gray-600'
-                }`}>
-                  Vendor Account
-                </p>
-                <p className={`text-xs mt-1 font-medium ${
-                  userType === 'vendor' ? 'text-emerald-500' : 'text-gray-500'
-                }`}>
-                  Sell & Grow
-                </p>
-              </motion.button>
+            {/* Top gold hairline with shimmer */}
+            <div className="absolute top-0 left-12 right-12 h-px overflow-hidden rounded-full">
+              <div style={{ background: `linear-gradient(90deg, transparent, ${userType === 'vendor' ? LUX.gold : LUX.gold}, transparent)`, height: '100%' }} />
+              <motion.div
+                className="absolute top-0 left-0 w-16 h-full"
+                style={{ background: `linear-gradient(90deg, transparent, ${LUX.goldSoft}, transparent)` }}
+                animate={shimmerAnimation}
+              />
             </div>
 
-            {/* Profile Image Upload */}
+            {/* Header */}
             <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.5 }}
+              className="mb-6"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
             >
-              <label className="block text-sm font-bold text-gray-800 mb-2">
-                Profile Image <span className="text-gray-500 font-medium">(Optional)</span>
-              </label>
-              <div className="flex items-center space-x-4">
-                <div className="relative">
-                  {profileImagePreview ? (
-                    <div className="relative w-24 h-24 rounded-full overflow-hidden border-4 border-emerald-100 shadow-lg">
-                      <img
-                        src={profileImagePreview}
-                        alt="Profile preview"
-                        className="w-full h-full object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={removeProfileImage}
-                        className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 border-4 border-gray-200 flex items-center justify-center">
-                      <User className="h-10 w-10 text-gray-400" />
-                    </div>
-                  )}
-                </div>
-                <div className="flex-1">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="hidden"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="flex items-center px-4 py-2 border-2 border-dashed border-emerald-300 rounded-lg hover:border-emerald-500 hover:bg-emerald-50 transition-all duration-200 text-sm font-medium text-emerald-600"
-                  >
-                    <Camera className="h-4 w-4 mr-2" />
-                    {profileImage ? 'Change Image' : 'Upload Image'}
-                  </button>
-                  <p className="text-xs text-gray-500 mt-1">Max size: 5MB. JPG, PNG, GIF</p>
-                </div>
+              <div className="inline-flex items-center gap-2.5 mb-3">
+                <Sparkles className="h-4 w-4" style={{ color: userType === 'vendor' ? LUX.gold : LUX.gold }} />
+                <span className="text-[10px] font-semibold tracking-[0.28em] uppercase" style={{ color: userType === 'vendor' ? LUX.gold : LUX.gold }}>
+                  Create Account
+                </span>
               </div>
+              <h2 className="font-serif text-2xl sm:text-3xl font-semibold leading-tight mb-2" style={{ color: LUX.emeraldDeep }}>
+                Start Your Journey
+              </h2>
+              <p className="text-sm text-gray-500 leading-relaxed">
+                Join thousands of users and start your journey today
+              </p>
             </motion.div>
 
-
-            {/* First Name and Last Name Row */}
-            <div className="grid grid-cols-2 gap-4">
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5, delay: 0.65 }}
-              >
-                <label className="block text-sm font-bold bg-gradient-to-r from-gray-800 to-gray-700 bg-clip-text text-transparent mb-3">
-                  First Name
-                </label>
-                <div className="relative group">
-                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 via-green-500/20 to-emerald-500/20 rounded-2xl blur-sm opacity-0 group-focus-within:opacity-100 transition-all duration-300"></div>
-                  <User className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-emerald-600 transition-all duration-300 z-10" />
-                  <input
-                    {...register('first_name')}
-                    placeholder="Enter your first name"
-                    className="relative z-10 pl-12 pr-4 w-full py-4 border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all duration-300 bg-white hover:border-gray-300 hover:shadow-lg text-base placeholder-gray-500 shadow-sm font-medium backdrop-blur-sm"
-                  />
-                </div>
-                {errors.first_name && (
-                  <motion.p 
-                    className="mt-1 text-xs text-red-600 flex items-center"
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                  >
-                    <span className="w-1 h-1 bg-red-600 rounded-full mr-2"></span>
-                    {errors.first_name.message}
-                  </motion.p>
-                )}
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5, delay: 0.7 }}
-              >
-                <label className="block text-sm font-bold bg-gradient-to-r from-gray-800 to-gray-700 bg-clip-text text-transparent mb-3">
-                  Last Name
-                </label>
-                <div className="relative group">
-                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 via-green-500/20 to-emerald-500/20 rounded-2xl blur-sm opacity-0 group-focus-within:opacity-100 transition-all duration-300"></div>
-                  <User className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-emerald-600 transition-all duration-300 z-10" />
-                  <input
-                    {...register('last_name')}
-                    placeholder="Enter your last name"
-                    className="relative z-10 pl-12 pr-4 w-full py-4 border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all duration-300 bg-white hover:border-gray-300 hover:shadow-lg text-base placeholder-gray-500 shadow-sm font-medium backdrop-blur-sm"
-                  />
-                </div>
-                {errors.last_name && (
-                  <motion.p 
-                    className="mt-1 text-xs text-red-600 flex items-center"
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                  >
-                    <span className="w-1 h-1 bg-red-600 rounded-full mr-2"></span>
-                    {errors.last_name.message}
-                  </motion.p>
-                )}
-              </motion.div>
-            </div>
-
-            {/* Email and Password Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5, delay: 0.7 }}
-              >
-                <label className="block text-sm font-bold bg-gradient-to-r from-gray-800 to-gray-700 bg-clip-text text-transparent mb-3">
-                  Email Address
-                </label>
-                <div className="relative group">
-                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 via-green-500/20 to-emerald-500/20 rounded-2xl blur-sm opacity-0 group-focus-within:opacity-100 transition-all duration-300"></div>
-                  <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-emerald-600 transition-all duration-300 z-10" />
-                  <input
-                    {...register('email')}
-                    type="email"
-                    placeholder="Enter your email address"
-                    className="relative z-10 pl-12 pr-4 w-full py-4 border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all duration-300 bg-white hover:border-gray-300 hover:shadow-lg text-base placeholder-gray-500 shadow-sm font-medium backdrop-blur-sm"
-                  />
-                </div>
-                {errors.email && (
-                  <motion.p 
-                    className="mt-1 text-xs text-red-600 flex items-center"
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                  >
-                    <span className="w-1 h-1 bg-red-600 rounded-full mr-2"></span>
-                    {errors.email.message}
-                  </motion.p>
-                )}
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5, delay: 0.8 }}
-              >
-                <label className="block text-sm font-bold bg-gradient-to-r from-gray-800 to-gray-700 bg-clip-text text-transparent mb-3">
-                  Username
-                </label>
-                <div className="relative group">
-                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 via-green-500/20 to-teal-500/20 rounded-2xl blur-sm opacity-0 group-focus-within:opacity-100 transition-all duration-300"></div>
-                  <User className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-emerald-600 transition-all duration-300 z-10" />
-                  <input
-                    {...register('username')}
-                    placeholder="Choose a unique username"
-                    className="relative z-10 pl-12 pr-4 w-full py-4 border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all duration-300 bg-white hover:border-gray-300 hover:shadow-lg text-base placeholder-gray-500 shadow-sm font-medium backdrop-blur-sm"
-                  />
-                </div>
-                {errors.username && (
-                  <motion.p 
-                    className="mt-1 text-xs text-red-600 flex items-center"
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                  >
-                    <span className="w-1 h-1 bg-red-600 rounded-full mr-2"></span>
-                    {errors.username.message}
-                  </motion.p>
-                )}
-              </motion.div>
-            </div>
-
-            {/* Password and Confirm Password Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5, delay: 0.8 }}
-              >
-                <label className="block text-sm font-bold bg-gradient-to-r from-gray-800 to-gray-700 bg-clip-text text-transparent mb-3">
-                  Password
-                </label>
-                <div className="relative group">
-                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 via-green-500/20 to-emerald-500/20 rounded-2xl blur-sm opacity-0 group-focus-within:opacity-100 transition-all duration-300"></div>
-                  <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-emerald-600 transition-all duration-300 z-10" />
-                  <input
-                    {...register('password')}
-                    type="password"
-                    placeholder="Create a secure password"
-                    className="relative z-10 pl-12 pr-4 w-full py-4 border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all duration-300 bg-white hover:border-gray-300 hover:shadow-lg text-base placeholder-gray-500 shadow-sm font-medium backdrop-blur-sm"
-                  />
-                </div>
-                {errors.password && (
-                  <motion.p 
-                    className="mt-1 text-xs text-red-600 flex items-center"
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                  >
-                    <span className="w-1 h-1 bg-red-600 rounded-full mr-2"></span>
-                    {errors.password.message}
-                  </motion.p>
-                )}
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5, delay: 0.9 }}
-              >
-                <label className="block text-sm font-bold bg-gradient-to-r from-gray-800 to-gray-700 bg-clip-text text-transparent mb-3">
-                  Confirm Password
-                </label>
-                <div className="relative group">
-                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 via-green-500/20 to-emerald-500/20 rounded-2xl blur-sm opacity-0 group-focus-within:opacity-100 transition-all duration-300"></div>
-                  <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-emerald-600 transition-all duration-300 z-10" />
-                  <input
-                    {...register('confirm_password')}
-                    type="password"
-                    placeholder="Confirm your password"
-                    className="relative z-10 pl-12 pr-4 w-full py-4 border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all duration-300 bg-white hover:border-gray-300 hover:shadow-lg text-base placeholder-gray-500 shadow-sm font-medium backdrop-blur-sm"
-                  />
-                </div>
-                {errors.confirm_password && (
-                  <motion.p 
-                    className="mt-1 text-xs text-red-600 flex items-center"
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                  >
-                    <span className="w-1 h-1 bg-red-600 rounded-full mr-2"></span>
-                    {errors.confirm_password.message}
-                  </motion.p>
-                )}
-              </motion.div>
-            </div>
-
-            {/* Phone and Address Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5, delay: 1.0 }}
-              >
-                <label className="block text-sm font-bold bg-gradient-to-r from-gray-800 to-gray-700 bg-clip-text text-transparent mb-3">
-                  Phone Number <span className="text-gray-500 font-medium">(Optional)</span>
-                </label>
-                <div className="relative group">
-                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 via-green-500/20 to-emerald-500/20 rounded-2xl blur-sm opacity-0 group-focus-within:opacity-100 transition-all duration-300"></div>
-                  <Phone className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-emerald-600 transition-all duration-300 z-10" />
-                  <input
-                    {...register('phone')}
-                    placeholder="Enter your phone number"
-                    className="relative z-10 pl-12 pr-4 w-full py-4 border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all duration-300 bg-white hover:border-gray-300 hover:shadow-lg text-base placeholder-gray-500 shadow-sm font-medium backdrop-blur-sm"
-                  />
-                </div>
-                {errors.phone && (
-                  <motion.p 
-                    className="mt-1 text-xs text-red-600 flex items-center"
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                  >
-                    <span className="w-1 h-1 bg-red-600 rounded-full mr-2"></span>
-                    {errors.phone.message}
-                  </motion.p>
-                )}
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5, delay: 1.1 }}
-              >
-                <label className="block text-sm font-bold text-gray-800 mb-2">
-                  Address <span className="text-gray-500 font-medium">(Optional)</span>
-                </label>
-                <div className="relative group">
-                  <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400 group-focus-within:text-emerald-600 transition-colors" />
-                  <textarea
-                    {...register('address')}
-                    placeholder="Enter your address"
-                    rows={3}
-                    className="pl-10 pr-4 w-full py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600 transition-all duration-200 bg-white hover:border-emerald-400 text-sm placeholder-gray-400 resize-none"
-                  />
-                </div>
-                {errors.address && (
-                  <motion.p 
-                    className="mt-1 text-xs text-red-600 flex items-center"
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                  >
-                    <span className="w-1 h-1 bg-red-600 rounded-full mr-2"></span>
-                    {errors.address.message}
-                  </motion.p>
-                )}
-              </motion.div>
-            </div>
-
-            {/* Vendor-specific fields */}
-            {userType === 'vendor' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.5, delay: 1.2 }}
-                >
-                  <label className="block text-sm font-bold text-gray-800 mb-2">
-                    Store Name
-                  </label>
-                  <div className="relative group">
-                    <Store className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-emerald-600 transition-colors" />
-                    <input
-                      {...register('store_name')}
-                      placeholder="Enter your store name"
-                      className="pl-10 pr-4 w-full py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600 transition-all duration-200 bg-white hover:border-emerald-400 text-sm placeholder-gray-400"
-                    />
-                  </div>
-                  {errors.store_name && (
-                    <motion.p 
-                      className="mt-1 text-xs text-red-600 flex items-center"
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                    >
-                      <span className="w-1 h-1 bg-red-600 rounded-full mr-2"></span>
-                      {errors.store_name.message}
-                    </motion.p>
-                  )}
-                </motion.div>
-
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.5, delay: 1.3 }}
-                >
-                  <label className="block text-sm font-bold text-gray-800 mb-2">
-                    Store Description
-                  </label>
-                  <div className="relative group">
-                    <FileText className="absolute left-3 top-3 h-4 w-4 text-gray-400 group-focus-within:text-emerald-600 transition-colors" />
-                    <textarea
-                      {...register('store_description')}
-                      placeholder="Describe your store and what you sell"
-                      rows={3}
-                      className="pl-10 pr-4 w-full py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600 transition-all duration-200 bg-white hover:border-emerald-400 text-sm placeholder-gray-400 resize-none"
-                    />
-                  </div>
-                  {errors.store_description && (
-                    <motion.p 
-                      className="mt-1 text-xs text-red-600 flex items-center"
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                    >
-                      <span className="w-1 h-1 bg-red-600 rounded-full mr-2"></span>
-                      {errors.store_description.message}
-                    </motion.p>
-                  )}
-                </motion.div>
-              </div>
-            )}
-
-            <input
-              type="hidden"
-              {...register('user_type')}
-            />
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
+            <motion.form
+              onSubmit={handleSubmit(onSubmit)}
+              className="space-y-5"
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 1.4 }}
+              transition={{ duration: 0.6, delay: 0.45 }}
             >
-              <button
+
+              {/* ── Role selector - Mobile Responsive ─────────────────── */}
+              <div>
+                <FieldLabel isVendor={userType === 'vendor'}>I want to</FieldLabel>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Shop as Buyer - Full width on mobile */}
+                  <motion.button
+                    type="button"
+                    onClick={() => setUserType('buyer')}
+                    whileHover={{ scale: 1.01, y: -1 }}
+                    whileTap={{ scale: 0.99 }}
+                    className="relative flex flex-col sm:flex-row items-center gap-2 sm:gap-3 p-4 sm:p-5 rounded-2xl transition-all duration-200 overflow-hidden"
+                    style={
+                      userType === 'buyer'
+                        ? {
+                            border: `2px solid ${LUX.emerald}`,
+                            background: `linear-gradient(135deg, ${LUX.emerald}0c, ${LUX.emeraldDeep}0a)`,
+                            boxShadow: `0 0 0 3px ${LUX.emerald}18`,
+                          }
+                        : {
+                            border: `1.5px solid rgba(6,78,59,0.15)`,
+                            background: LUX.paper,
+                          }
+                    }
+                  >
+                    {userType === 'buyer' && (
+                      <div className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: LUX.emerald }}>
+                        <CheckCircle className="h-3 w-3 text-white" />
+                      </div>
+                    )}
+                    <div
+                      className="w-12 h-12 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-all shrink-0"
+                      style={{ background: userType === 'buyer' ? `linear-gradient(135deg, ${LUX.emerald}, ${LUX.emeraldDeep})` : 'rgba(6,78,59,0.08)' }}
+                    >
+                      <User className="h-5 w-5" style={{ color: userType === 'buyer' ? LUX.goldSoft : '#9ca3af' }} />
+                    </div>
+                    <div className="text-center sm:text-left">
+                      <p className="text-sm font-serif font-semibold" style={{ color: userType === 'buyer' ? LUX.emeraldDeep : '#6b7280' }}>
+                        Shop as Buyer
+                      </p>
+                      <p className="text-xs mt-0.5" style={{ color: userType === 'buyer' ? LUX.emerald : '#9ca3af' }}>
+                        Discover & purchase
+                      </p>
+                    </div>
+                  </motion.button>
+
+                  {/* Sell as Vendor - Full width on mobile */}
+                  <motion.button
+                    type="button"
+                    onClick={() => setUserType('vendor')}
+                    whileHover={{ scale: 1.01, y: -1 }}
+                    whileTap={{ scale: 0.99 }}
+                    className="relative flex flex-col sm:flex-row items-center gap-2 sm:gap-3 p-4 sm:p-5 rounded-2xl transition-all duration-200 overflow-hidden"
+                    style={
+                      userType === 'vendor'
+                        ? {
+                            border: `2px solid ${LUX.gold}`,
+                            background: `linear-gradient(135deg, ${LUX.gold}10, ${LUX.gold}06)`,
+                            boxShadow: `0 0 0 3px ${LUX.gold}18`,
+                          }
+                        : {
+                            border: `1.5px solid rgba(6,78,59,0.15)`,
+                            background: LUX.paper,
+                          }
+                    }
+                  >
+                    {userType === 'vendor' && (
+                      <div className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: LUX.gold }}>
+                        <CheckCircle className="h-3 w-3" style={{ color: LUX.emeraldDeep }} />
+                      </div>
+                    )}
+                    <div
+                      className="w-12 h-12 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-all shrink-0"
+                      style={{ background: userType === 'vendor' ? `linear-gradient(135deg, ${LUX.gold}, #B8902F)` : 'rgba(6,78,59,0.08)' }}
+                    >
+                      <Store className="h-5 w-5" style={{ color: userType === 'vendor' ? LUX.emeraldDeep : '#9ca3af' }} />
+                    </div>
+                    <div className="text-center sm:text-left">
+                      <p className="text-sm font-serif font-semibold" style={{ color: userType === 'vendor' ? LUX.emeraldDeep : '#6b7280' }}>
+                        Sell as Vendor
+                      </p>
+                      <p className="text-xs mt-0.5" style={{ color: userType === 'vendor' ? '#B8902F' : '#9ca3af' }}>
+                        Launch & grow
+                      </p>
+                    </div>
+                  </motion.button>
+                </div>
+              </div>
+
+              {/* ── Profile image ─────────────────────────────── */}
+              <div>
+                <FieldLabel isVendor={userType === 'vendor'}>Profile Image <span className="normal-case text-gray-400 font-normal tracking-normal">(Optional)</span></FieldLabel>
+                <div className="flex items-center gap-4">
+                  <div className="shrink-0">
+                    {profileImagePreview ? (
+                      <div className="relative w-16 h-16 rounded-2xl overflow-hidden" style={{ border: `2px solid ${userType === 'vendor' ? LUX.gold : LUX.emerald}55` }}>
+                        <img src={profileImagePreview} alt="Preview" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={removeProfileImage}
+                          className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div
+                        className="w-16 h-16 rounded-2xl flex items-center justify-center"
+                        style={{ background: 'rgba(6,78,59,0.06)', border: `1.5px dashed ${userType === 'vendor' ? LUX.gold : 'rgba(6,78,59,0.20)'}66` }}
+                      >
+                        <User className="h-7 w-7" style={{ color: 'rgba(6,78,59,0.30)' }} />
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-all"
+                      style={{ border: `1.5px dashed ${userType === 'vendor' ? LUX.gold : LUX.emerald}55`, color: userType === 'vendor' ? '#B8902F' : LUX.emerald, background: userType === 'vendor' ? `${LUX.gold}06` : `${LUX.emerald}06` }}
+                    >
+                      <Camera className="h-4 w-4" />
+                      {profileImage ? 'Change Image' : 'Upload Photo'}
+                    </button>
+                    <p className="text-[10px] text-gray-400 mt-1">Max 5MB · JPG, PNG, GIF</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Name row ──────────────────────────────────── */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <FieldLabel isVendor={userType === 'vendor'}>First Name</FieldLabel>
+                  <div className="relative">
+                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 z-10" />
+                    <input
+                      {...register('first_name')}
+                      placeholder="First name"
+                      className="w-full pl-10 pr-3 h-11 rounded-xl text-sm font-medium outline-none transition-all"
+                      style={inputBase(userType === 'vendor')}
+                      onFocus={e => Object.assign(e.currentTarget.style, focusStyle(userType === 'vendor'))}
+                      onBlur={e => Object.assign(e.currentTarget.style, blurStyle(userType === 'vendor'))}
+                    />
+                  </div>
+                  <FieldError message={errors.first_name?.message} />
+                </div>
+                <div>
+                  <FieldLabel isVendor={userType === 'vendor'}>Last Name</FieldLabel>
+                  <div className="relative">
+                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 z-10" />
+                    <input
+                      {...register('last_name')}
+                      placeholder="Last name"
+                      className="w-full pl-10 pr-3 h-11 rounded-xl text-sm font-medium outline-none transition-all"
+                      style={inputBase(userType === 'vendor')}
+                      onFocus={e => Object.assign(e.currentTarget.style, focusStyle(userType === 'vendor'))}
+                      onBlur={e => Object.assign(e.currentTarget.style, blurStyle(userType === 'vendor'))}
+                    />
+                  </div>
+                  <FieldError message={errors.last_name?.message} />
+                </div>
+              </div>
+
+              {/* ── Email + Username row ───────────────────────── */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <FieldLabel isVendor={userType === 'vendor'}>Email Address</FieldLabel>
+                  <div className="relative">
+                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 z-10" />
+                    <input
+                      {...register('email')}
+                      type="email"
+                      placeholder="you@example.com"
+                      className="w-full pl-10 pr-3 h-11 rounded-xl text-sm font-medium outline-none transition-all"
+                      style={inputBase(userType === 'vendor')}
+                      onFocus={e => Object.assign(e.currentTarget.style, focusStyle(userType === 'vendor'))}
+                      onBlur={e => Object.assign(e.currentTarget.style, blurStyle(userType === 'vendor'))}
+                    />
+                  </div>
+                  <FieldError message={errors.email?.message} />
+                </div>
+                <div>
+                  <FieldLabel isVendor={userType === 'vendor'}>Username</FieldLabel>
+                  <div className="relative">
+                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 z-10" />
+                    <input
+                      {...register('username')}
+                      placeholder="your_username"
+                      className="w-full pl-10 pr-3 h-11 rounded-xl text-sm font-medium outline-none transition-all"
+                      style={inputBase(userType === 'vendor')}
+                      onFocus={e => Object.assign(e.currentTarget.style, focusStyle(userType === 'vendor'))}
+                      onBlur={e => Object.assign(e.currentTarget.style, blurStyle(userType === 'vendor'))}
+                    />
+                  </div>
+                  <FieldError message={errors.username?.message} />
+                </div>
+              </div>
+
+              {/* ── Password row ───────────────────────────────── */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <FieldLabel isVendor={userType === 'vendor'}>Password</FieldLabel>
+                  <div className="relative">
+                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 z-10" />
+                    <input
+                      {...register('password')}
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Min 6 characters"
+                      className="w-full pl-10 pr-10 h-11 rounded-xl text-sm font-medium outline-none transition-all"
+                      style={inputBase(userType === 'vendor')}
+                      onFocus={e => Object.assign(e.currentTarget.style, focusStyle(userType === 'vendor'))}
+                      onBlur={e => Object.assign(e.currentTarget.style, blurStyle(userType === 'vendor'))}
+                    />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 z-10 p-1">
+                      {showPassword ? <EyeOff className="h-4 w-4 text-gray-400" /> : <Eye className="h-4 w-4 text-gray-400" />}
+                    </button>
+                  </div>
+                  <FieldError message={errors.password?.message} />
+                </div>
+                <div>
+                  <FieldLabel isVendor={userType === 'vendor'}>Confirm Password</FieldLabel>
+                  <div className="relative">
+                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 z-10" />
+                    <input
+                      {...register('confirm_password')}
+                      type={showConfirm ? 'text' : 'password'}
+                      placeholder="Repeat password"
+                      className="w-full pl-10 pr-10 h-11 rounded-xl text-sm font-medium outline-none transition-all"
+                      style={inputBase(userType === 'vendor')}
+                      onFocus={e => Object.assign(e.currentTarget.style, focusStyle(userType === 'vendor'))}
+                      onBlur={e => Object.assign(e.currentTarget.style, blurStyle(userType === 'vendor'))}
+                    />
+                    <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 z-10 p-1">
+                      {showConfirm ? <EyeOff className="h-4 w-4 text-gray-400" /> : <Eye className="h-4 w-4 text-gray-400" />}
+                    </button>
+                  </div>
+                  <FieldError message={errors.confirm_password?.message} />
+                </div>
+              </div>
+
+              {/* ── Phone + Address ────────────────────────────── */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <FieldLabel isVendor={userType === 'vendor'}>Phone <span className="normal-case text-gray-400 font-normal tracking-normal">(Optional)</span></FieldLabel>
+                  <div className="relative">
+                    <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 z-10" />
+                    <input
+                      {...register('phone')}
+                      placeholder="+1 (555) 000-0000"
+                      className="w-full pl-10 pr-3 h-11 rounded-xl text-sm font-medium outline-none transition-all"
+                      style={inputBase(userType === 'vendor')}
+                      onFocus={e => Object.assign(e.currentTarget.style, focusStyle(userType === 'vendor'))}
+                      onBlur={e => Object.assign(e.currentTarget.style, blurStyle(userType === 'vendor'))}
+                    />
+                  </div>
+                  <FieldError message={errors.phone?.message} />
+                </div>
+                <div>
+                  <FieldLabel isVendor={userType === 'vendor'}>Address <span className="normal-case text-gray-400 font-normal tracking-normal">(Optional)</span></FieldLabel>
+                  <div className="relative">
+                    <MapPin className="absolute left-3.5 top-3 h-4 w-4 text-gray-400 z-10" />
+                    <textarea
+                      {...register('address')}
+                      placeholder="Your address"
+                      rows={2}
+                      className="w-full pl-10 pr-3 py-2.5 rounded-xl text-sm font-medium outline-none transition-all resize-none"
+                      style={inputBase(userType === 'vendor')}
+                      onFocus={e => Object.assign(e.currentTarget.style, focusStyle(userType === 'vendor'))}
+                      onBlur={e => Object.assign(e.currentTarget.style, blurStyle(userType === 'vendor'))}
+                    />
+                  </div>
+                  <FieldError message={errors.address?.message} />
+                </div>
+              </div>
+
+              {/* ── Vendor-only fields ────────────────────────── */}
+              <AnimatePresence>
+                {userType === 'vendor' && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.35 }}
+                    className="overflow-hidden"
+                  >
+                    <div
+                      className="rounded-2xl p-4 space-y-3"
+                      style={{ background: `${LUX.gold}06`, border: `1px solid ${LUX.gold}30` }}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${LUX.gold}, #B8902F)` }}>
+                          <Store className="h-3 w-3" style={{ color: LUX.emeraldDeep }} />
+                        </div>
+                        <span className="text-xs font-semibold tracking-[0.18em] uppercase" style={{ color: LUX.gold }}>
+                          Store Details
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <FieldLabel isVendor={true}>Store Name</FieldLabel>
+                          <div className="relative">
+                            <Store className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 z-10" />
+                            <input
+                              {...register('store_name')}
+                              placeholder="Your store name"
+                              className="w-full pl-10 pr-3 h-11 rounded-xl text-sm font-medium outline-none transition-all"
+                              style={inputBase(true)}
+                              onFocus={e => Object.assign(e.currentTarget.style, focusStyle(true))}
+                              onBlur={e => Object.assign(e.currentTarget.style, blurStyle(true))}
+                            />
+                          </div>
+                          <FieldError message={errors.store_name?.message} />
+                        </div>
+                        <div>
+                          <FieldLabel isVendor={true}>Store Description</FieldLabel>
+                          <div className="relative">
+                            <FileText className="absolute left-3.5 top-3 h-4 w-4 text-gray-400 z-10" />
+                            <textarea
+                              {...register('store_description')}
+                              placeholder="Describe what you sell"
+                              rows={2}
+                              className="w-full pl-10 pr-3 py-2.5 rounded-xl text-sm font-medium outline-none transition-all resize-none"
+                              style={inputBase(true)}
+                              onFocus={e => Object.assign(e.currentTarget.style, focusStyle(true))}
+                              onBlur={e => Object.assign(e.currentTarget.style, blurStyle(true))}
+                            />
+                          </div>
+                          <FieldError message={errors.store_description?.message} />
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <input type="hidden" {...register('user_type')} />
+
+              {/* ── Submit ────────────────────────────────────── */}
+              <motion.button
                 type="submit"
                 disabled={isSubmitting}
-                className="group relative w-full flex justify-center py-5 px-6 border-2 border-transparent rounded-2xl shadow-2xl text-base font-bold text-white bg-gradient-to-r from-emerald-600 via-green-600 to-emerald-700 hover:from-emerald-700 hover:via-green-700 hover:to-emerald-800 focus:outline-none focus:ring-4 focus:ring-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-[1.02] hover:shadow-3xl hover:shadow-emerald-500/25"
+                whileHover={{ scale: isSubmitting ? 1 : 1.02, y: isSubmitting ? 0 : -2 }}
+                whileTap={{ scale: 0.98 }}
+                className="relative w-full h-12 rounded-xl font-semibold text-sm tracking-wide flex items-center justify-center gap-2 shadow-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed overflow-hidden"
+                style={{
+                  background: userType === 'vendor'
+                    ? `linear-gradient(135deg, ${LUX.gold}, #B8902F)`
+                    : `linear-gradient(135deg, ${LUX.emeraldSoft}, ${LUX.emeraldDeep})`,
+                  color: userType === 'vendor' ? LUX.emeraldDeep : '#fff',
+                  boxShadow: userType === 'vendor'
+                    ? `0 12px 35px -8px ${LUX.gold}88`
+                    : `0 12px 35px -8px ${LUX.emerald}88`,
+                }}
               >
+                <motion.div
+                  className="absolute inset-0"
+                  style={{ background: `linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.2) 50%, transparent 60%)` }}
+                  initial={{ x: '-200%' }}
+                  whileHover={{ x: '200%' }}
+                  transition={{ duration: 0.8 }}
+                />
                 {isSubmitting ? (
-                  <div className="flex items-center">
-                    <motion.svg 
-                      className="h-4 w-4 text-white mr-2" 
-                      xmlns="http://www.w3.org/2000/svg" 
-                      fill="none" 
+                  <>
+                    <motion.svg
+                      className="h-4 w-4"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
                       viewBox="0 0 24 24"
                       animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                      transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                     >
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </motion.svg>
-                    <span className="text-base font-bold">Creating Account...</span>
-                  </div>
+                    Creating Account…
+                  </>
                 ) : (
                   <>
-                    <span className="text-base font-bold">Create Account</span>
-                    <ArrowRight className="ml-3 h-5 w-5 group-hover:translate-x-1 transition-transform duration-300" />
+                    Create Account
+                    <ArrowRight className="h-4 w-4" />
                   </>
                 )}
-              </button>
-            </motion.div>
+              </motion.button>
 
-            <motion.div 
-              className="text-center"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5, delay: 1.4 }}
-            >
-              <p className="text-sm text-gray-600">
+              {/* Sign in link */}
+              <p className="text-center text-sm text-gray-500">
                 Already have an account?{' '}
-                <Link to="/login" className="font-semibold text-blue-600 hover:text-blue-500 transition-colors">
+                <Link to="/login" className="font-semibold transition-colors hover:opacity-80" style={{ color: userType === 'vendor' ? '#B8902F' : LUX.emerald }}>
                   Sign in
                 </Link>
               </p>
-            </motion.div>
-          </motion.form>
+            </motion.form>
 
-          <motion.div 
-            className="mt-8"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 1.5 }}
-          >
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200"></div>
+            {/* Social login */}
+            <div className="mt-6">
+              <div className="relative mb-4">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t" style={{ borderColor: 'rgba(6,78,59,0.10)' }} />
+                </div>
+                <div className="relative flex justify-center">
+                  <span className="px-4 text-xs font-medium text-gray-400 bg-white">Or continue with</span>
+                </div>
               </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-gradient-to-r from-gray-50 to-white text-gray-500 font-medium">Or continue with</span>
+              <div className="grid grid-cols-2 gap-3">
+                <motion.button
+                  whileHover={{ scale: 1.02, y: -1 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="flex items-center justify-center gap-2 h-11 rounded-xl text-sm font-semibold transition-all"
+                  style={{ border: `1.5px solid rgba(6,78,59,0.12)`, background: '#fff', color: LUX.emeraldDeep }}
+                >
+                  <img className="h-4 w-4" src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" />
+                  Google
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02, y: -1 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="flex items-center justify-center gap-2 h-11 rounded-xl text-sm font-semibold transition-all"
+                  style={{ border: `1.5px solid rgba(6,78,59,0.12)`, background: '#fff', color: LUX.emeraldDeep }}
+                >
+                  <img className="h-4 w-4" src="https://www.svgrepo.com/show/475647/facebook-color.svg" alt="Facebook" />
+                  Facebook
+                </motion.button>
               </div>
-            </div>
-
-            <div className="mt-6 grid grid-cols-2 gap-4">
-              <motion.button 
-                className="w-full inline-flex justify-center py-3 px-4 border border-gray-200 rounded-xl shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 hover:border-gray-300 transition-all duration-300"
-                whileHover={{ scale: 1.02, y: -1 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <img
-                  className="h-5 w-5"
-                  src="https://www.svgrepo.com/show/475656/google-color.svg"
-                  alt="Google"
-                />
-              </motion.button>
-              <motion.button 
-                className="w-full inline-flex justify-center py-3 px-4 border border-gray-200 rounded-xl shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 hover:border-gray-300 transition-all duration-300"
-                whileHover={{ scale: 1.02, y: -1 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <img
-                  className="h-5 w-5"
-                  src="https://www.svgrepo.com/show/475647/facebook-color.svg"
-                  alt="Facebook"
-                />
-              </motion.button>
             </div>
           </motion.div>
         </div>
-      </motion.div>
       </motion.div>
     </div>
   );

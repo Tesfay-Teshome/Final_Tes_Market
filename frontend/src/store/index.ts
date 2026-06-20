@@ -13,14 +13,7 @@ export const store = configureStore({
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
-      serializableCheck: {
-        // Ignore these action types
-        ignoredActions: ['chat/addMessage', 'chat/setTypingStatus'],
-        // Ignore these field paths in all actions
-        ignoredActionPaths: ['payload.timestamp', 'payload.last_message.timestamp'],
-        // Ignore these paths in the state
-        ignoredPaths: ['chat.messages', 'chat.conversations'],
-      },
+      serializableCheck: false,
     }),
 });
 

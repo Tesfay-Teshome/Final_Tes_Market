@@ -135,7 +135,7 @@ const Navbar = () => {
       setNotifications(notificationsData);
 
       try {
-        const unreadResponse = await notificationsAPI.getUnreadCount();
+        const unreadResponse = await notificationsAPI.getUnreadNotificationsCount();
         setUnreadNotifications(unreadResponse.data.unread_count || 0);
       } catch (e) {
         setUnreadNotifications(notificationsData.filter((n: any) => !n.is_read).length);
@@ -319,7 +319,7 @@ const Navbar = () => {
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -10 }}
                           transition={{ duration: 0.2 }}
-                          className="absolute right-0 top-full mt-2 w-80 rounded-2xl shadow-2xl overflow-hidden z-50 border"
+                          className="fixed left-4 right-4 sm:absolute sm:left-auto sm:right-0 top-16 sm:top-full mt-2 w-[calc(100vw-2rem)] sm:w-96 rounded-2xl shadow-2xl overflow-hidden z-50 border"
                           style={{ background: LUX.paper, borderColor: `${LUX.gold}33`, maxHeight: '400px' }}
                           onClick={(e) => e.stopPropagation()}
                         >
@@ -698,13 +698,13 @@ const Navbar = () => {
                 <button
                   type="button"
                   onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                  className="md:hidden p-3 rounded-lg text-white hover:text-white transition-all duration-300 border-2 border-transparent hover:border-white/20 backdrop-blur-sm"
+                  className="md:hidden p-2 rounded-lg text-white hover:text-white transition-all duration-300 border-2 border-transparent hover:border-white/20 backdrop-blur-sm"
                   style={{ background: 'rgba(255,255,255,0.05)' }}
                 >
                   {isMobileMenuOpen ? (
-                    <X className="h-6 w-6" />
+                    <X className="h-5 w-5" />
                   ) : (
-                    <Menu className="h-6 w-6" />
+                    <Menu className="h-5 w-5" />
                   )}
                 </button>
               </motion.div>
