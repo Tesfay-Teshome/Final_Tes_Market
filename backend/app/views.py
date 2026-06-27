@@ -86,8 +86,12 @@ class RegisterView(generics.CreateAPIView):
             if 'profile_image' in self.request.FILES:
                 user.profile_image = self.request.FILES['profile_image']
                 user.save()
-            # Set vendor verification status
-            if user.user_type == 'vendor':
+            # Set user active status based on user type
+            if user.user_type == 'buyer':
+                # Buyers are automatically active - no approval needed
+                user.is_active = True
+                user.save()
+            elif user.user_type == 'vendor':
                 # Check if request is authenticated (admin creating user)
                 if hasattr(self.request, 'user') and self.request.user.is_authenticated and self.request.user.is_staff:
                     # Admin-created vendors are auto-approved
@@ -96,7 +100,7 @@ class RegisterView(generics.CreateAPIView):
                 else:
                     # Public registration - pending approval
                     user.is_verified = False
-                    user.is_active = True
+                    user.is_active = False
                 user.save()
             return user
         except IntegrityError:

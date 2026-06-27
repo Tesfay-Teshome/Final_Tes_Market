@@ -56,6 +56,7 @@ import VendorNotifications from '@/pages/vendor/Notifications';
 import EarningsBreakdown from '@/pages/vendor/EarningsBreakdown';
 import VendorPayout from '@/pages/vendor/Payout';
 import Login from '@/pages/auth/Login';
+import VendorApprovalPending from '@/pages/auth/VendorApprovalPending';
 import StorefrontWizard from '@/pages/vendor/StorefrontWizard';
 import VendorCoupons from '@/pages/vendor/VendorCoupons';
 
@@ -82,6 +83,7 @@ const AppRoutes = () => {
         <Route path="contact" element={<Contact />} />
         <Route path="login" element={<Login />} />
         <Route path="register" element={<Register />} />
+        <Route path="vendor-approval-pending" element={<VendorApprovalPending />} />
 
         {/* Public Storefront Routes */}
         <Route path="store/:slug" element={<StorefrontPage />} />

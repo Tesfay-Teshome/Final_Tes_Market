@@ -10,7 +10,6 @@ import { useToast } from '@/components/ui/use-toast';
 import { RootState } from '@/store';
 import api from '@/lib/axios';
 import { motion } from 'framer-motion';
-
 const VendorProducts = () => {
   const { vendorId } = useParams<{ vendorId: string }>();
   const dispatch = useDispatch();
@@ -18,7 +17,6 @@ const VendorProducts = () => {
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('');
-
   // Add to cart mutation (same as ProductDetails)
   const addToCartMutation = useMutation({
     mutationFn: ({ productId, quantity }: { productId: string; quantity: number }) =>
@@ -44,7 +42,6 @@ const VendorProducts = () => {
       });
     },
   });
-
   // Fetch vendor details
   const { data: vendorData } = useQuery({
     queryKey: ['vendor', vendorId],
@@ -54,22 +51,18 @@ const VendorProducts = () => {
     },
     enabled: !!vendorId,
   });
-
   // Fetch vendor's products
   const { data: productsData, isLoading } = useQuery<Product[]>({
     queryKey: ['vendor-products', vendorId, searchTerm, sortBy],
     queryFn: async () => {
       const params: Record<string, any> = { vendor: vendorId };
-      
       if (searchTerm) params.search = searchTerm;
       if (sortBy) params.ordering = sortBy;
-      
       const response = await productsAPI.getAll(params);
       return Array.isArray(response.data) ? response.data : [];
     },
     enabled: !!vendorId,
   });
-
   const handleAddToCart = (product: Product) => {
     if (!isAuthenticated) {
       toast({
@@ -79,7 +72,6 @@ const VendorProducts = () => {
       });
       return;
     }
-
     if (user?.user_type !== 'buyer') {
       toast({
         title: 'Access Denied',
@@ -88,10 +80,8 @@ const VendorProducts = () => {
       });
       return;
     }
-
     addToCartMutation.mutate({ productId: product.id, quantity: 1 });
   };
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
@@ -102,13 +92,11 @@ const VendorProducts = () => {
       </div>
     );
   }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-emerald-50">
       {/* Vendor Header */}
       <section className="relative overflow-hidden bg-gradient-to-r from-emerald-600 via-green-600 to-emerald-700 text-white">
         <div className="absolute inset-0 bg-black opacity-20"></div>
-        
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="flex items-center mb-6">
             <Link
@@ -119,7 +107,6 @@ const VendorProducts = () => {
               Back to Vendors
             </Link>
           </div>
-          
           <div className="flex items-center">
             {resolveMediaUrl(vendorData?.profile_image) ? (
               <img
@@ -153,7 +140,6 @@ const VendorProducts = () => {
           </div>
         </div>
       </section>
-
       {/* Search and Filter */}
       <section className="py-8 bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -168,7 +154,6 @@ const VendorProducts = () => {
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               />
             </div>
-            
             <div className="flex items-center space-x-4">
               <select
                 value={sortBy}
@@ -186,7 +171,6 @@ const VendorProducts = () => {
           </div>
         </div>
       </section>
-
       {/* Products Grid */}
       <section className="py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -214,13 +198,11 @@ const VendorProducts = () => {
                       <Heart className="h-5 w-5 text-white hover:text-red-400 cursor-pointer transition-colors" />
                     </div>
                   </div>
-                  
                   <div className="p-6">
                     <h3 className="font-bold text-lg text-gray-900 mb-2 group-hover:text-emerald-600 transition-colors line-clamp-2">
                       {product.name}
                     </h3>
                     <p className="text-gray-600 text-sm mb-4 line-clamp-2">{product.description}</p>
-                    
                     <div className="flex items-center justify-between mb-4">
                       <span className="text-2xl font-bold text-emerald-600">${product.price}</span>
                       <div className="flex items-center">
@@ -228,7 +210,6 @@ const VendorProducts = () => {
                         <span className="ml-1 text-sm text-gray-600">4.8</span>
                       </div>
                     </div>
-                    
                     <div className="space-y-2">
                       <Link
                         to={`/products/${product.slug}`}
@@ -270,5 +251,4 @@ const VendorProducts = () => {
     </div>
   );
 };
-
 export default VendorProducts;

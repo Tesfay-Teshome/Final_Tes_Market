@@ -260,6 +260,7 @@ export const adminAPI = {
 
   // Vendors
   getVendors: (params?: any) => api.get('/api/administrator/vendors/', { params }),
+  getPendingVendors: () => api.get('/api/administrator/vendors/', { params: { status: 'pending' } }),
   approveVendor: (id: string | number) => api.post(`/api/administrator/vendors/${id}/approve/`),
   rejectVendor: (id: string | number, reason?: string) => api.post(`/api/administrator/vendors/${id}/reject/`, { reason }),
 

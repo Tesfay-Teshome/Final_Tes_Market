@@ -1,332 +1,428 @@
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { motion } from 'framer-motion';
-import { Mail, Phone, MapPin, Send, MessageSquare, Clock, Users, Headphones } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
-import api from '@/lib/axios';
-import FadeIn from '@/components/animations/FadeIn';
-import Banner from '@/components/ui/Banner';
+import { useState } from 'react';
+import {
+  Mail,
+  Phone,
+  MapPin,
+  Send,
+  MessageSquare,
+  Clock,
+  Shield,
+  Verified,
+  Truck,
+  Check,
+  Headphones,
+} from 'lucide-react';
 
-const contactSchema = z.object({
-  name: z.string().min(2, 'Name is required'),
-  email: z.string().email('Invalid email address'),
-  subject: z.string().min(5, 'Subject is required'),
-  message: z.string().min(10, 'Message must be at least 10 characters'),
-});
-
-type ContactFormData = z.infer<typeof contactSchema>;
+const LUX = {
+  ink: '#04130E',
+  emeraldDeep: '#022C22',
+  emerald: '#064E3B',
+  emeraldSoft: '#065F46',
+  gold: '#C9A24B',
+  goldSoft: '#E6CE91',
+  cream: '#F7F3EC',
+  paper: '#FBF9F4',
+};
 
 const Contact = () => {
-  const { toast } = useToast();
+  const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submitting, setSubmitting] = useState(false);
+  const [sent, setSent] = useState(false);
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm<ContactFormData>({
-    resolver: zodResolver(contactSchema),
-  });
-
-  const onSubmit = async (data: ContactFormData) => {
-    try {
-      await api.post('/contact/', data);
-      toast({
-        title: 'Message sent',
-        description: 'We will get back to you soon!',
-      });
-      reset();
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to send message. Please try again.',
-        variant: 'destructive',
-      });
-    }
+  const validate = () => {
+    const e: Record<string, string> = {};
+    if (form.name.trim().length < 2) e.name = 'Name is required';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = 'Invalid email address';
+    if (form.subject.trim().length < 5) e.subject = 'Subject is required';
+    if (form.message.trim().length < 10) e.message = 'Message must be at least 10 characters';
+    setErrors(e);
+    return Object.keys(e).length === 0;
   };
 
+  const onSubmit = (ev: React.FormEvent) => {
+    ev.preventDefault();
+    if (!validate()) return;
+    setSubmitting(true);
+    setTimeout(() => {
+      setSubmitting(false);
+      setSent(true);
+      setForm({ name: '', email: '', subject: '', message: '' });
+      setTimeout(() => setSent(false), 4000);
+    }, 900);
+  };
+
+  const field = (key: keyof typeof form) => ({
+    value: form[key],
+    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+      setForm((f) => ({ ...f, [key]: e.target.value })),
+  });
+
+  const inputClass =
+    'w-full px-4 py-3 rounded-xl bg-white border transition-all duration-300 text-base focus:outline-none focus:ring-2';
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
-      {/* Hero Banner */}
-      <Banner 
-        title="Get in Touch"
-        subtitle="We'd love to hear from you. Send us a message and we'll respond as soon as possible."
-      />
+    <div className="min-h-screen" style={{ background: LUX.paper }}>
+      {/* HERO */}
+      <section className="relative overflow-hidden flex items-center py-24 lg:py-32">
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{
+            backgroundImage:
+              'url(https://images.unsplash.com/photo-1423666639041-f56000627a92?w=1600&h=900&fit=crop)',
+          }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background: `linear-gradient(115deg, ${LUX.ink} 0%, rgba(2,44,34,0.92) 45%, rgba(2,44,34,0.65) 75%, rgba(4,19,14,0.85) 100%)`,
+          }}
+        />
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              'radial-gradient(120% 80% at 80% 20%, rgba(201,162,75,0.18), transparent 55%)',
+          }}
+        />
+        <div
+          className="absolute bottom-0 left-0 right-0 h-px"
+          style={{ background: `linear-gradient(90deg, transparent, ${LUX.gold}, transparent)` }}
+        />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-
-        <div className="grid md:grid-cols-2 gap-12">
-          <motion.div
-            initial={{ opacity: 0, x: -50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6 }}
-            className="h-full"
+        <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <div className="inline-flex items-center gap-3 mb-5">
+            <span className="h-px w-10" style={{ background: LUX.gold }} />
+            <span
+              className="text-[11px] font-semibold tracking-[0.32em] uppercase"
+              style={{ color: LUX.goldSoft }}
+            >
+              We're Here to Help
+            </span>
+            <span className="h-px w-10" style={{ background: LUX.gold }} />
+          </div>
+          <h1
+            className="font-serif text-4xl md:text-6xl font-semibold text-white leading-[1.05] tracking-tight mb-5"
+            style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}
           >
-            <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100 h-full flex flex-col">
-              <motion.h2 
-                className="text-3xl font-bold text-gray-900 mb-8"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-              >
-                <MessageSquare className="inline mr-3 h-8 w-8 text-emerald-600" />
-                Contact Information
-              </motion.h2>
-              <div className="space-y-6">
-                <motion.div 
-                  className="flex items-center space-x-4 p-4 rounded-xl bg-emerald-50 hover:bg-emerald-100 transition-colors"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3 }}
-                  whileHover={{ scale: 1.02 }}
+            Get in{' '}
+            <span
+              className="italic font-light"
+              style={{
+                backgroundImage: `linear-gradient(90deg, ${LUX.goldSoft}, ${LUX.gold})`,
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}
+            >
+              Touch
+            </span>
+          </h1>
+          <p className="text-base md:text-lg text-white/80 leading-relaxed max-w-2xl mx-auto">
+            We'd love to hear from you. Send us a message and we'll respond within 24 hours.
+          </p>
+        </div>
+      </section>
+
+      {/* CONTACT GRID */}
+      <section className="py-24" style={{ background: LUX.paper }}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid md:grid-cols-2 gap-10">
+            {/* LEFT — Info */}
+            <div
+              className="rounded-2xl p-8 lg:p-10 border"
+              style={{
+                background: '#fff',
+                borderColor: 'rgba(6,78,59,0.10)',
+                boxShadow: '0 1px 0 rgba(6,78,59,0.04), 0 24px 50px -28px rgba(6,78,59,0.25)',
+              }}
+            >
+              <div className="inline-flex items-center gap-3 mb-5">
+                <span className="h-px w-8" style={{ background: LUX.gold }} />
+                <span
+                  className="text-[11px] font-semibold tracking-[0.32em] uppercase"
+                  style={{ color: LUX.gold }}
                 >
-                  <div className="w-12 h-12 bg-emerald-600 rounded-full flex items-center justify-center">
-                    <Mail className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Email</p>
-                    <p className="text-lg font-bold text-gray-900">support@tesmarket.com</p>
-                  </div>
-                </motion.div>
-                <motion.div 
-                  className="flex items-center space-x-4 p-4 rounded-xl bg-green-50 hover:bg-green-100 transition-colors"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.4 }}
-                  whileHover={{ scale: 1.02 }}
-                >
-                  <div className="w-12 h-12 bg-green-600 rounded-full flex items-center justify-center">
-                    <Phone className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Phone</p>
-                    <p className="text-lg font-bold text-gray-900">+1 234 567 8900</p>
-                  </div>
-                </motion.div>
-                <motion.div 
-                  className="flex items-center space-x-4 p-4 rounded-xl bg-purple-50 hover:bg-purple-100 transition-colors"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.5 }}
-                  whileHover={{ scale: 1.02 }}
-                >
-                  <div className="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center">
-                    <MapPin className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Location</p>
-                    <p className="text-lg font-bold text-gray-900">123 Market Street, City, Country</p>
-                  </div>
-                </motion.div>
+                  Contact Information
+                </span>
               </div>
-              
-              {/* Additional Info */}
-              <div className="mt-auto space-y-6">
-                <motion.div 
-                  className="p-6 bg-gradient-to-r from-emerald-600 to-green-600 rounded-xl text-white"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.6 }}
-                >
-                  <h3 className="text-xl font-bold mb-3">Why Contact Us?</h3>
-                  <ul className="space-y-2 text-sm">
-                    <li className="flex items-center">
-                      <div className="w-2 h-2 bg-yellow-400 rounded-full mr-3"></div>
-                      Quick response within 24 hours
-                    </li>
-                    <li className="flex items-center">
-                      <div className="w-2 h-2 bg-yellow-400 rounded-full mr-3"></div>
-                      Expert support team
-                    </li>
-                    <li className="flex items-center">
-                      <div className="w-2 h-2 bg-yellow-400 rounded-full mr-3"></div>
-                      Personalized solutions
-                    </li>
-                  </ul>
-                </motion.div>
+              <h2
+                className="text-3xl font-semibold mb-8"
+                style={{ color: LUX.emeraldDeep, fontFamily: 'Georgia, serif' }}
+              >
+                Let's start a conversation
+              </h2>
 
-                <motion.div 
-                  className="p-6 bg-gray-50 rounded-xl"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.7 }}
-                >
-                  <h3 className="text-lg font-bold text-gray-900 mb-3">Business Hours</h3>
-                  <div className="space-y-2 text-sm text-gray-600">
-                    <div className="flex justify-between">
-                      <span>Monday - Friday:</span>
-                      <span className="font-medium">9:00 AM - 6:00 PM</span>
+              <div className="space-y-5">
+                {[
+                  { icon: Mail, label: 'Email', value: 'support@tesmarket.com' },
+                  { icon: Phone, label: 'Phone', value: '+1 234 567 8900' },
+                  { icon: MapPin, label: 'Location', value: '123 Market Street, City, Country' },
+                ].map((c, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-4 p-4 rounded-xl transition-colors"
+                    style={{ background: LUX.cream }}
+                  >
+                    <div
+                      className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style={{
+                        background: `linear-gradient(135deg, ${LUX.emerald}, ${LUX.emeraldDeep})`,
+                      }}
+                    >
+                      <c.icon className="w-5 h-5" style={{ color: LUX.goldSoft }} />
                     </div>
-                    <div className="flex justify-between">
-                      <span>Saturday:</span>
-                      <span className="font-medium">10:00 AM - 4:00 PM</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Sunday:</span>
-                      <span className="font-medium">Closed</span>
+                    <div>
+                      <p
+                        className="text-[11px] font-semibold tracking-[0.22em] uppercase"
+                        style={{ color: LUX.gold }}
+                      >
+                        {c.label}
+                      </p>
+                      <p className="text-base font-semibold" style={{ color: LUX.emeraldDeep }}>
+                        {c.value}
+                      </p>
                     </div>
                   </div>
-                </motion.div>
+                ))}
+              </div>
 
-                <motion.div 
-                  className="p-6 bg-green-50 rounded-xl"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.8 }}
+              {/* Why contact */}
+              <div
+                className="mt-8 p-6 rounded-xl text-white"
+                style={{
+                  background: `linear-gradient(135deg, ${LUX.emerald}, ${LUX.emeraldDeep})`,
+                }}
+              >
+                <h3 className="text-lg font-semibold mb-3" style={{ fontFamily: 'Georgia, serif' }}>
+                  Why Contact Us?
+                </h3>
+                <ul className="space-y-2.5 text-sm">
+                  {['Quick response within 24 hours', 'Expert support team', 'Personalized solutions'].map(
+                    (t) => (
+                      <li key={t} className="flex items-center">
+                        <Check className="w-4 h-4 mr-3" style={{ color: LUX.goldSoft }} />
+                        {t}
+                      </li>
+                    )
+                  )}
+                </ul>
+              </div>
+
+              {/* Hours */}
+              <div className="mt-6 p-6 rounded-xl" style={{ background: LUX.cream }}>
+                <h3
+                  className="text-base font-semibold mb-3"
+                  style={{ color: LUX.emeraldDeep, fontFamily: 'Georgia, serif' }}
                 >
-                  <h3 className="text-lg font-bold text-gray-900 mb-3">Follow Us</h3>
-                  <div className="flex space-x-4">
-                    <div className="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center text-white cursor-pointer hover:bg-emerald-700 transition-colors">
-                      <span className="text-sm font-bold">f</span>
-                    </div>
-                    <div className="w-10 h-10 bg-emerald-400 rounded-full flex items-center justify-center text-white cursor-pointer hover:bg-emerald-500 transition-colors">
-                      <span className="text-sm font-bold">t</span>
-                    </div>
-                    <div className="w-10 h-10 bg-pink-600 rounded-full flex items-center justify-center text-white cursor-pointer hover:bg-pink-700 transition-colors">
-                      <span className="text-sm font-bold">ig</span>
-                    </div>
-                    <div className="w-10 h-10 bg-emerald-700 rounded-full flex items-center justify-center text-white cursor-pointer hover:bg-emerald-800 transition-colors">
-                      <span className="text-sm font-bold">in</span>
-                    </div>
+                  Business Hours
+                </h3>
+                <div className="space-y-2 text-sm" style={{ color: '#4b5563' }}>
+                  <div className="flex justify-between">
+                    <span>Monday – Friday</span>
+                    <span className="font-medium">9:00 AM – 6:00 PM</span>
                   </div>
-                </motion.div>
+                  <div className="flex justify-between">
+                    <span>Saturday</span>
+                    <span className="font-medium">10:00 AM – 4:00 PM</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Sunday</span>
+                    <span className="font-medium">Closed</span>
+                  </div>
+                </div>
               </div>
             </div>
-          </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-          >
-            <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
-              <motion.h2 
-                className="text-3xl font-bold text-gray-900 mb-8"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-              >
-                <Send className="inline mr-3 h-8 w-8 text-purple-600" />
-                Send us a message
-              </motion.h2>
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 }}
+            {/* RIGHT — Form */}
+            <div
+              className="rounded-2xl p-8 lg:p-10 border"
+              style={{
+                background: '#fff',
+                borderColor: 'rgba(6,78,59,0.10)',
+                boxShadow: '0 1px 0 rgba(6,78,59,0.04), 0 24px 50px -28px rgba(6,78,59,0.25)',
+              }}
+            >
+              <div className="inline-flex items-center gap-3 mb-5">
+                <span className="h-px w-8" style={{ background: LUX.gold }} />
+                <span
+                  className="text-[11px] font-semibold tracking-[0.32em] uppercase"
+                  style={{ color: LUX.gold }}
                 >
-                  <label className="block text-lg font-semibold text-gray-800 mb-2">
+                  Send a Message
+                </span>
+              </div>
+              <h2
+                className="text-3xl font-semibold mb-8"
+                style={{ color: LUX.emeraldDeep, fontFamily: 'Georgia, serif' }}
+              >
+                We'd love to hear from you
+              </h2>
+
+              {sent && (
+                <div
+                  className="mb-6 px-4 py-3 rounded-xl text-sm flex items-center gap-2"
+                  style={{ background: 'rgba(6,95,70,0.10)', color: LUX.emerald }}
+                >
+                  <Check className="w-4 h-4" />
+                  Message sent — we'll get back to you soon.
+                </div>
+              )}
+
+              <form onSubmit={onSubmit} className="space-y-5">
+                <div>
+                  <label
+                    className="block text-[11px] font-semibold tracking-[0.18em] uppercase mb-2"
+                    style={{ color: LUX.emeraldDeep }}
+                  >
                     Name
                   </label>
                   <input
-                    {...register('name')}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all duration-300 text-lg"
+                    {...field('name')}
                     placeholder="Your full name"
+                    className={inputClass}
+                    style={{
+                      borderColor: errors.name ? '#dc2626' : 'rgba(6,78,59,0.15)',
+                    }}
                   />
-                  {errors.name && (
-                    <motion.p 
-                      className="mt-2 text-sm text-red-600 flex items-center"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                    >
-                      {errors.name.message}
-                    </motion.p>
-                  )}
-                </motion.div>
+                  {errors.name && <p className="mt-1.5 text-sm text-red-600">{errors.name}</p>}
+                </div>
 
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.6 }}
-                >
-                  <label className="block text-lg font-semibold text-gray-800 mb-2">
+                <div>
+                  <label
+                    className="block text-[11px] font-semibold tracking-[0.18em] uppercase mb-2"
+                    style={{ color: LUX.emeraldDeep }}
+                  >
                     Email
                   </label>
                   <input
-                    {...register('email')}
+                    {...field('email')}
                     type="email"
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all duration-300 text-lg"
-                    placeholder="your@email.com"
+                    placeholder="you@example.com"
+                    className={inputClass}
+                    style={{
+                      borderColor: errors.email ? '#dc2626' : 'rgba(6,78,59,0.15)',
+                    }}
                   />
-                  {errors.email && (
-                    <motion.p 
-                      className="mt-2 text-sm text-red-600 flex items-center"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                    >
-                      {errors.email.message}
-                    </motion.p>
-                  )}
-                </motion.div>
+                  {errors.email && <p className="mt-1.5 text-sm text-red-600">{errors.email}</p>}
+                </div>
 
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.7 }}
-                >
-                  <label className="block text-lg font-semibold text-gray-800 mb-2">
+                <div>
+                  <label
+                    className="block text-[11px] font-semibold tracking-[0.18em] uppercase mb-2"
+                    style={{ color: LUX.emeraldDeep }}
+                  >
                     Subject
                   </label>
                   <input
-                    {...register('subject')}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all duration-300 text-lg"
+                    {...field('subject')}
                     placeholder="How can we help you?"
+                    className={inputClass}
+                    style={{
+                      borderColor: errors.subject ? '#dc2626' : 'rgba(6,78,59,0.15)',
+                    }}
                   />
-                  {errors.subject && (
-                    <motion.p 
-                      className="mt-2 text-sm text-red-600 flex items-center"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                    >
-                      {errors.subject.message}
-                    </motion.p>
-                  )}
-                </motion.div>
+                  {errors.subject && <p className="mt-1.5 text-sm text-red-600">{errors.subject}</p>}
+                </div>
 
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.8 }}
-                >
-                  <label className="block text-lg font-semibold text-gray-800 mb-2">
+                <div>
+                  <label
+                    className="block text-[11px] font-semibold tracking-[0.18em] uppercase mb-2"
+                    style={{ color: LUX.emeraldDeep }}
+                  >
                     Message
                   </label>
                   <textarea
-                    {...register('message')}
+                    {...field('message')}
                     rows={5}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-300 text-lg resize-none"
                     placeholder="Tell us more about your inquiry..."
+                    className={`${inputClass} resize-none`}
+                    style={{
+                      borderColor: errors.message ? '#dc2626' : 'rgba(6,78,59,0.15)',
+                    }}
                   />
-                  {errors.message && (
-                    <motion.p 
-                      className="mt-2 text-sm text-red-600 flex items-center"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                    >
-                      {errors.message.message}
-                    </motion.p>
-                  )}
-                </motion.div>
+                  {errors.message && <p className="mt-1.5 text-sm text-red-600">{errors.message}</p>}
+                </div>
 
-                <motion.button
+                <button
                   type="submit"
-                  disabled={isSubmitting}
-                  className="w-full flex justify-center items-center px-6 py-4 bg-gradient-to-r from-emerald-600 to-green-600 text-white font-semibold rounded-xl hover:from-emerald-700 hover:to-green-700 focus:outline-none focus:ring-4 focus:ring-emerald-200 disabled:opacity-50 transition-all duration-300 text-lg shadow-lg"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.9 }}
-                  whileHover={{ scale: 1.02, y: -2 }}
-                  whileTap={{ scale: 0.98 }}
+                  disabled={submitting}
+                  className="w-full flex justify-center items-center px-6 py-4 font-semibold rounded-xl text-white transition-all duration-300 disabled:opacity-60 shadow-lg hover:-translate-y-0.5"
+                  style={{
+                    background: `linear-gradient(135deg, ${LUX.emerald}, ${LUX.emeraldDeep})`,
+                    border: `1px solid ${LUX.gold}55`,
+                  }}
                 >
-                  <Send className="h-5 w-5 mr-3" />
-                  {isSubmitting ? 'Sending Message...' : 'Send Message'}
-                </motion.button>
+                  <Send className="h-4 w-4 mr-2.5" />
+                  {submitting ? 'Sending Message…' : 'Send Message'}
+                </button>
               </form>
             </div>
-          </motion.div>
+          </div>
         </div>
-      </div>
+      </section>
+
+      {/* TRUST STRIP */}
+      <section className="relative overflow-hidden py-20">
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{
+            backgroundImage:
+              'url(https://images.unsplash.com/photo-1556740758-90de374c12ad?w=1600&h=900&fit=crop)',
+          }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{ background: `linear-gradient(120deg, ${LUX.ink} 0%, rgba(2,44,34,0.95) 100%)` }}
+        />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              { icon: Shield, title: 'Secure & Private', desc: 'Your details are encrypted and never shared.' },
+              { icon: Headphones, title: '24/7 Concierge', desc: 'Our dedicated team is always here to help you.' },
+              { icon: Clock, title: 'Fast Response', desc: 'We reply to every inquiry within 24 hours.' },
+            ].map((b, i) => (
+              <div key={i} className="text-center">
+                <div
+                  className="w-14 h-14 rounded-xl flex items-center justify-center mb-5 mx-auto border"
+                  style={{ background: 'rgba(255,255,255,0.05)', borderColor: `${LUX.gold}55` }}
+                >
+                  <b.icon className="h-6 w-6" style={{ color: LUX.goldSoft }} />
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-2" style={{ fontFamily: 'Georgia, serif' }}>
+                  {b.title}
+                </h3>
+                <p className="text-sm text-white/70 leading-relaxed">{b.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* TRUST BADGES */}
+      <section className="py-16" style={{ background: LUX.cream }}>
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-wrap justify-center gap-3">
+            {[
+              { icon: Shield, text: 'Secure Payments' },
+              { icon: Verified, text: 'Verified Vendors' },
+              { icon: Truck, text: 'Fast Delivery' },
+              { icon: MessageSquare, text: '24/7 Support' },
+            ].map((b, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-2 px-4 py-2 rounded-full border"
+                style={{ borderColor: `${LUX.gold}40`, background: '#fff' }}
+              >
+                <b.icon className="h-4 w-4" style={{ color: LUX.gold }} />
+                <span className="text-xs font-medium tracking-wide" style={{ color: LUX.emeraldDeep }}>
+                  {b.text}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
     </div>
   );
 };

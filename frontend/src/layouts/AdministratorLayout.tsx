@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Menu } from 'lucide-react';
 import AdministratorHeader from '@/components/navigation/AdministratorHeader';
 import AdministratorSidebar from '@/components/navigation/AdministratorSidebar';
+import VendorApprovalPopup from '@/components/admin/VendorApprovalPopup';
 
 const AdministratorLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -10,6 +11,7 @@ const AdministratorLayout = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0B0F14] via-[#0F141B] to-[#0B0F14]">
       <AdministratorHeader />
+      <VendorApprovalPopup />
       <div className="relative flex min-h-screen">
         {/* Mobile Toolbar (Secondary navbar for menu toggle) */}
         {!isSidebarOpen && (

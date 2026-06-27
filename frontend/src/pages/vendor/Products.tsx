@@ -7,19 +7,16 @@ import { Button } from '@/components/ui/button';
 import { Search, Plus, Pencil, Trash2, Loader2, Package, LayoutGrid, AlertCircle, RefreshCw, Eye } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Product } from '@/types';
-
 interface ApiResponse<T> {
   data?: T;
   results?: T;
   // Add other possible response properties here if needed
 }
-
 const Products = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-
   // Fetch products
   const { data: response, isLoading, isError } = useQuery({
     queryKey: ['vendor-products', searchTerm],
@@ -40,14 +37,11 @@ const Products = () => {
       }
     },
   });
-
   // Extract products from the response
   const products = useMemo(() => {
     if (!response) return [];
-
     // Handle different response formats
     const responseData = response.data;
-
     if (Array.isArray(responseData)) {
       return responseData; // Direct array response
     } else if (responseData?.results && Array.isArray(responseData.results)) {
@@ -55,11 +49,9 @@ const Products = () => {
     } else if (responseData?.data && Array.isArray(responseData.data)) {
       return responseData.data; // Nested data array
     }
-
     console.warn('Unexpected response format, returning empty array. Response:', response);
     return [];
   }, [response]);
-
   // Delete product mutation
   const deleteMutation = useMutation({
     mutationFn: (id: string) => vendorAPI.deleteProduct(id),
@@ -79,23 +71,18 @@ const Products = () => {
       });
     },
   });
-
   const handleDelete = (id: string) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
       deleteMutation.mutate(id);
     }
   };
-
   const handleEdit = (id: string) => {
     navigate(`/vendor/products/edit/${id}`);
   };
-
   // Function to get image URL with debug logging
   const getImageUrl = (imagePath: string | null | undefined) => resolveMediaUrl(imagePath) || null;
-
   // Local fallback image
   const fallbackImage = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMjAwIiB2aWV3Qm94PSIwIDAgMzAwIDIwMCI+PHN0eWxlPnRleHQge2ZvbnQtZmFtaWx5OnNhbnMtc2VyaWY7Zm9udC1zaXplOjI0cHg7ZG9taW5hbnQtYmFzZWxpbmU6bWlkZGxlO3RleHQtYW5jaG9yOm1pZGRsZTtmaWxsOiM5OTk7fTwvc3R5bGU+PHJlY3Qgd2lkdGg9IjMwMCIgaGVpZ2h0PSIyMDAiIGZpbGw9IiNlZWVlZWUiLz48dGV4dCB4PSIxNTAiIHk9IjEwMCI+Tm8gSW1hZ2U8L3RleHQ+PC9zdmc+';
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#070B0F] flex items-center justify-center">
@@ -110,21 +97,17 @@ const Products = () => {
       </div>
     );
   }
-
   return (
     <div className="flex-1 relative min-h-screen text-[#E6E8EA] font-sans selection:bg-[#00FF9D]/30 pb-4 sm:pb-6 bg-[#070B0F]">
       {/* Premium Background Layer */}
       <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
         <div className="absolute inset-0 opacity-[0.015] mix-blend-overlay"
           style={{ backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.4) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
-
         {/* Focal point glow orbs */}
         <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-emerald-500/5 rounded-full blur-[120px] animate-pulse" />
         <div className="absolute bottom-[20%] -right-[5%] w-[35%] h-[35%] bg-blue-500/5 rounded-full blur-[100px]" />
       </div>
-
       <div className="relative z-10 px-4 sm:px-6 lg:px-8 max-w-[1700px] mx-auto pt-8">
-
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-4">
           <motion.div
@@ -145,7 +128,6 @@ const Products = () => {
               You have {products.length} products in your store
             </p>
           </motion.div>
-
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -172,7 +154,6 @@ const Products = () => {
             </motion.button>
           </motion.div>
         </div>
-
         {/* Product Catalog Grid */}
         <AnimatePresence mode="wait">
           {isError ? (
@@ -262,7 +243,6 @@ const Products = () => {
                       </div>
                     </div>
                   </div>
-                  
                   <div className="mt-2 pt-2 border-t border-gray-700/50">
                     <div className="flex items-center justify-between mb-3">
                       <div className="bg-gradient-to-r from-yellow-600/90 via-orange-600/90 to-red-600/90 text-yellow-100 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl shadow-lg border border-yellow-500/50">
@@ -280,7 +260,6 @@ const Products = () => {
                         {product.approval_status === 'approved' ? '✅ Active' : product.approval_status === 'rejected' ? '❌ Declined' : '⏳ Pending'}
                       </div>
                     </div>
-                    
                     <div className="flex gap-2">
                       <motion.button
                         whileHover={{ scale: 1.02 }}
@@ -310,5 +289,4 @@ const Products = () => {
     </div>
   );
 };
-
 export default Products;

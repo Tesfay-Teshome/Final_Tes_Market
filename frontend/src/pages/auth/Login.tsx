@@ -162,6 +162,19 @@ const Login = () => {
       const profileResponse = await authAPI.getCurrentUser();
       dispatch(setUser(profileResponse.data));
 
+      // Clear vendor approval dismissal on successful login
+      sessionStorage.removeItem('vendorApprovalDismissed');
+
+      // Check if vendor is not active (pending approval)
+      if (profileResponse.data.user_type === 'vendor' && !profileResponse.data.is_active) {
+        toast({
+          title: 'Account Pending Approval',
+          description: 'Your vendor account is awaiting administrator approval.',
+        });
+        navigate('/vendor-approval-pending', { replace: true });
+        return;
+      }
+
       toast({
         title: 'Welcome back!',
         description: 'You have successfully logged in.',
@@ -170,6 +183,7 @@ const Login = () => {
       console.log('🔄 User login successful:', {
         user_type: profileResponse.data.user_type,
         email: profileResponse.data.email,
+        is_active: profileResponse.data.is_active,
         from,
       });
 
